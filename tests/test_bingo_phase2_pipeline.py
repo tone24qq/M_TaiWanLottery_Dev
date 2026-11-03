@@ -55,6 +55,9 @@ class Scorer:
             training_cutoff=rows[-1]["draw_term"],
         )
         result["today"] = infer_today(rows, self.directory, 1, plan["target_date"])
+        from taiwan_lottery.ml.bingo_associations import association_candidates
+
+        result["associations"] = association_candidates(rows, result["by_star_scores"])
         self.models = suite.statuses()
         return result
 
@@ -105,7 +108,32 @@ async def test_all_three_families_archive_settle_learn_and_restore_without_fake_
             assert first["today_status"]["history_dates"] == ["2026-11-03"]
             assert first["today_status"]["history_count"] == 10
             assert first["today_status"]["history_start"] == "115000204"
+            assert set(first["associations"]["by_star"]) == {"3", "4", "5"}
+            assert all(
+                set(v) == {"A", "B", "C"}
+                for v in first["associations"]["by_star"].values()
+            )
+            frozen_associations = copy.deepcopy(first["associations"])
             assert (await runtime.predict()) == first
+            assert runtime.associations()["by_star"] == frozen_associations["by_star"]
+            import httpx
+            from taiwan_lottery.main import app
+
+            previous_runtime = getattr(app.state, "bingo", None)
+            app.state.bingo = runtime
+            try:
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app), base_url="http://test"
+                ) as client:
+                    response = await client.get("/api/v1/bingo/associations")
+                assert response.status_code == 200
+                assert response.json()["by_star"] == frozen_associations["by_star"]
+                assert response.json()["state"] == "sealed"
+            finally:
+                if previous_runtime is None:
+                    del app.state.bingo
+                else:
+                    app.state.bingo = previous_runtime
             target = runtime.target["draw_term"]
             rows.append(
                 dict(
@@ -117,6 +145,12 @@ async def test_all_three_families_archive_settle_learn_and_restore_without_fake_
             clock.when = datetime(2026, 11, 3, 7, 55, 10, tzinfo=TAIPEI)
             await runtime.cycle()
             assert runtime.families.state["observations"] == 1
+            assert runtime.association_tracker.state["observations"] == 1
+            assert all(
+                row["samples"] == 1
+                for board in runtime.associations()["leaderboards"].values()
+                for row in board["cumulative"]
+            )
             assert runtime.performance.status()["last_report"]["target_term"] == target
             for star in ("3", "4", "5"):
                 group = runtime.families.status()["stars"][star]
@@ -137,6 +171,10 @@ async def test_all_three_families_archive_settle_learn_and_restore_without_fake_
             )
             await restored.initialize()
             assert restored.families.status() == runtime.families.status()
+            assert (
+                restored.association_tracker.status()
+                == runtime.association_tracker.status()
+            )
             assert restored.prediction == original
             await restored.close()
         finally:

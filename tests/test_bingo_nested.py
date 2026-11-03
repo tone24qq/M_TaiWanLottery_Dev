@@ -205,3 +205,55 @@ def test_real_scorer_hyperparameters_change_calculation_not_names():
     assert not np.allclose(base["frequency"], challenger["frequency"])
     assert not np.allclose(base["cdm"], challenger["cdm"])
     assert not np.allclose(base["ensemble"], challenger["ensemble"])
+
+
+def test_nested_regression_rolls_back_only_after_closed_shadow_evidence():
+    from taiwan_lottery.ml.bingo_nested import _select_before_block
+
+    rows = data(450)
+    profiles = (CandidateProfile("fixed"), CandidateProfile("recent", 60))
+    records = {}
+    for index in range(100, 400):
+        for stars in (3, 4, 5):
+            records[(index, "fixed", "shrink", stars)] = stars
+            for method in ("equal", "shrink", "borda", "majority"):
+                records[(index, "recent", method, stars)] = 0
+    champions = {
+        str(stars): {"profile": "recent", "method": "equal", "validated": True}
+        for stars in (3, 4, 5)
+    }
+    selected = _select_before_block(
+        rows,
+        records,
+        profiles,
+        400,
+        300,
+        2,
+        30,
+        100,
+        champions,
+        {"fixed": 1.0, "recent": 1.0},
+        0.03,
+    )
+    for star in ("3", "4", "5"):
+        result = selected["by_star"][star]
+        assert result["rolled_back"] is True
+        assert result["champion"]["profile"] == "fixed"
+        assert result["champion"]["effective_from"] == rows[400]["draw_term"]
+        assert result["promoted"] is False
+        assert result["rollback_validation"]["samples"] == 100
+    # Insufficient prospective confirmation cannot cause rollback.
+    early = _select_before_block(
+        rows,
+        records,
+        profiles,
+        399,
+        300,
+        2,
+        30,
+        100,
+        champions,
+        {"fixed": 1.0, "recent": 1.0},
+        0.03,
+    )
+    assert all(not value["rolled_back"] for value in early["by_star"].values())

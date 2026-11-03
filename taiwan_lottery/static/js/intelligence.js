@@ -20,6 +20,9 @@
     strategy_historical: "Historical 跨日歷史",
     strategy_hybrid: "Adaptive Hybrid 自適應混合",
     production: "正式採用策略",
+    association_a: "關聯方案 A",
+    association_b: "關聯方案 B",
+    association_c: "關聯方案 C",
     borda: "排名積分",
     majority: "多數決",
   };

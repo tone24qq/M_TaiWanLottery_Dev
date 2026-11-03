@@ -211,3 +211,52 @@ class SchedulingTests(unittest.IsolatedAsyncioTestCase):
         self.clock.when += timedelta(seconds=1)
         await self.runtime._maybe_train()
         self.assertEqual(len(self.worker.calls), 2)
+
+    async def test_failed_today_job_retries_today_without_retraining_historical(self):
+        data = rows(120)
+        await self.seed(data)
+        self.worker.adaptive_scoring = True
+        await self.runtime.start_training()
+        historical_term = self.runtime._last_train_term
+        historical_time = self.runtime._last_train_time
+        # Historical is still current. A failed Today job must repair only the
+        # date-scoped artifact, even when Historical's old60s retry age passed.
+        self.clock.when += timedelta(minutes=5)
+        day = data[-1]["draw_datetime"].date().isoformat()
+        self.worker.training.update(state="failed", scope="today", target_date=day)
+        await self.runtime._maybe_train()
+        self.assertEqual(
+            [call[0] for call in self.worker.calls], ["train", "today_train"]
+        )
+        self.assertEqual(self.runtime._last_train_term, historical_term)
+        self.assertEqual(self.runtime._last_train_time, historical_time)
+        self.assertEqual(self.worker.calls[-1][2], {"target_date": day})
+        self.assertTrue(
+            all(
+                row["draw_datetime"].date().isoformat() == day
+                for row in self.worker.calls[-1][1]
+            )
+        )
+        # A repeatedly failing day model has the same bounded60s retry policy,
+        # rather than launching again on each45s source poll.
+        self.clock.when += timedelta(seconds=59)
+        await self.runtime._maybe_train()
+        self.assertEqual(len(self.worker.calls), 2)
+        self.clock.when += timedelta(seconds=1)
+        await self.runtime._maybe_train()
+        self.assertEqual(
+            [call[0] for call in self.worker.calls],
+            ["train", "today_train", "today_train"],
+        )
+
+    async def test_historical_repair_backoff_is_not_overwritten_by_today_launch(self):
+        await self.seed(rows(120))
+        self.worker.adaptive_scoring = True
+        await self.runtime.start_training()
+        self.worker.training.update(state="failed", scope="historical")
+        self.clock.when += timedelta(seconds=59)
+        await self.runtime._maybe_train()
+        self.assertEqual([call[0] for call in self.worker.calls], ["train"])
+        self.clock.when += timedelta(seconds=1)
+        await self.runtime._maybe_train()
+        self.assertEqual([call[0] for call in self.worker.calls], ["train", "train"])

@@ -317,7 +317,40 @@ def _select_before_block(
             resource_ratio=ratio,
         )
         current = copy.deepcopy(previous_champions[str(stars)])
-        promoted = profile_id != "fixed" and inner["approved"] and shadow["approved"]
+        rollback_pairs = _pairs(
+            records, current["profile"], current["method"], stars, shadow_indexes
+        )
+        rollback = paired_gate(
+            [
+                {
+                    **row,
+                    "champion_hits": row["challenger_hits"],
+                    "challenger_hits": row["champion_hits"],
+                }
+                for row in rollback_pairs
+            ],
+            stars,
+            comparison_count=comparisons,
+            attempt=selection_count,
+            minimum_improvement=minimum_improvement,
+            resource_ratio=base_cost / costs.get(current["profile"], base_cost)
+            if costs.get(current["profile"], base_cost) > 0
+            else 1.0,
+        )
+        rolled_back = current["profile"] != "fixed" and rollback["approved"]
+        if rolled_back:
+            current = {
+                "profile": "fixed",
+                "method": "shrink",
+                "validated": True,
+                "effective_from": data[index]["draw_term"],
+            }
+        promoted = (
+            not rolled_back
+            and profile_id != "fixed"
+            and inner["approved"]
+            and shadow["approved"]
+        )
         if promoted:
             current = {
                 "profile": profile_id,
@@ -329,11 +362,17 @@ def _select_before_block(
             "candidate": {"profile": profile_id, "method": method},
             "champion": current,
             "promoted": promoted,
+            "rolled_back": rolled_back,
+            "rollback_validation": rollback,
             "inner_validation": inner,
             "shadow_validation": shadow,
-            "reason": "候選通過先前獨立影子期數，僅變更其後期數"
-            if promoted
-            else inner["reason"],
+            "reason": "已驗證候選在先前獨立影子期數持續退化，僅未來期數回退固定基準"
+            if rolled_back
+            else (
+                "候選通過先前獨立影子期數，僅變更其後期數"
+                if promoted
+                else inner["reason"]
+            ),
         }
     return output
 

@@ -5,6 +5,7 @@ import copy
 from collections import Counter
 from datetime import timedelta
 import json
+import hashlib
 from datetime import datetime
 from pathlib import Path
 
@@ -26,6 +27,7 @@ from taiwan_lottery.ml.bingo_evaluation import (
     live_rankings_summary,
     normalize_scores,
     recommend_method,
+    _performance_summary,
 )
 from taiwan_lottery.scraper.parsers.bingo_parser import BingoScraper
 from taiwan_lottery.services.bingo_workers import WorkerManager
@@ -35,6 +37,7 @@ from taiwan_lottery.ml.bingo_models import MODEL_NAMES
 from taiwan_lottery.ml.bingo_contexts import context_audit
 from taiwan_lottery.services.bingo_monitoring import PerformanceMonitor
 from taiwan_lottery.services.bingo_resources import ResourceSampler
+from taiwan_lottery.services.bingo_association_tracking import AssociationTracker
 
 
 class BingoRuntime:
@@ -81,6 +84,7 @@ class BingoRuntime:
         )
         self.performance = PerformanceMonitor()
         self.families = ResearchStrategies()
+        self.association_tracker = AssociationTracker()
         self._monitor_view = self.performance.status()
         self.resources = ResourceSampler()
         self._strategy_events = []
@@ -88,12 +92,20 @@ class BingoRuntime:
         self._validation_at = None
         self._validation_source = None
         self._profile_status = {}
+        self._last_today_train_time = None
+        self._last_today_train_date = None
 
     async def initialize(self):
         await self.store.init_schema()
         self.snapshot = await self.store.history(limit=10000)
         self._bootstrapping = not bool(self.snapshot)
-        for namespace in ("adaptive", "monitor", "families", "validation"):
+        for namespace in (
+            "adaptive",
+            "monitor",
+            "families",
+            "associations",
+            "validation",
+        ):
             saved = await self.store.load_research_state(namespace)
             if not saved:
                 continue
@@ -107,6 +119,10 @@ class BingoRuntime:
                 if saved["payload"].get("is_live") is False:
                     raise ValueError("歷史模擬不可載入並行實戰")
                 self.families = ResearchStrategies(saved["payload"])
+            elif namespace == "associations":
+                if saved["payload"].get("is_live") is False:
+                    raise ValueError("歷史模擬不可載入關聯實戰")
+                self.association_tracker = AssociationTracker(saved["payload"])
             else:
                 self._validation_at = saved["payload"].get("last_evaluation_at")
                 self._validation_source = saved["payload"].get("source_term")
@@ -327,6 +343,13 @@ class BingoRuntime:
         )
         plan = self.adaptive.plan(latest["draw_term"], history=len(snapshot))
         plan["target_date"] = at.date().isoformat()
+        # Only compact, already settled model statistics cross the process boundary.
+        plan["association_performance"] = [
+            dict(model=name, stars=k, samples=count, mean_hits=mean)
+            for k in (3, 4, 5)
+            for name, (count, mean) in _performance_summary(self.outcomes, k).items()
+            if name in MODEL_NAMES
+        ]
         if not settings.ADAPTIVE_ENABLED:
             plan["shadow_windows"] = []
             plan["champions"] = {
@@ -339,7 +362,10 @@ class BingoRuntime:
         else:
             result = await self.workers.score(snapshot)
         if result.get("warning") and not self.workers.busy:
-            self.workers.training.update(state="failed", error=result["warning"])
+            self.workers.training.update(
+                state="failed", scope="historical", error=result["warning"]
+            )
+            self.workers.training.pop("target_date", None)
         self._profile_status = result.get("profile_status", {})
         forecasts, shadows, audits, by_star = [], [], [], {}
         historical_scores = {}
@@ -652,6 +678,66 @@ class BingoRuntime:
                     )
                     if stars == 3:
                         full_ranking = by_star[key]["ranking"]
+        associations = result.get("associations")
+        if associations:
+            for stars in (3, 4, 5):
+                for label, candidate in associations["by_star"][str(stars)].items():
+                    history = candidate.get("history", {})
+                    info = dict(
+                        candidate,
+                        training_cutoff=latest["draw_term"],
+                        feature_cutoff=latest["draw_term"],
+                        model_version=result["version"],
+                        feature_version=associations["feature_version"],
+                        policy_version=associations["version"],
+                        input_hash=result["snapshot_hash"],
+                        history_start=history.get(
+                            "start_term", history.get("from", snapshot[0]["draw_term"])
+                        ),
+                        history_end=latest["draw_term"],
+                        history_count=history.get("count", min(1000, len(snapshot))),
+                        association_label=label,
+                        rule_version=associations["version"],
+                        models_used=sorted(candidate.get("model_weights", {}))
+                        if label == "C"
+                        else [],
+                        model_training_cutoffs={
+                            r["model"]: r["metadata"]["training_cutoff"]
+                            for r in audits
+                            if r["stars"] == stars
+                            and r["model"] in candidate.get("model_weights", {})
+                        }
+                        if label == "C"
+                        else {},
+                        model_versions={
+                            r["model"]: r["metadata"]["model_version"]
+                            for r in audits
+                            if r["stars"] == stars
+                            and r["model"] in candidate.get("model_weights", {})
+                        }
+                        if label == "C"
+                        else {},
+                    )
+                    shadows.append(
+                        dict(
+                            model="association_" + label.lower(),
+                            stars=stars,
+                            window=max(1, int(info["history_count"])),
+                            profile=associations["version"],
+                            numbers=candidate["numbers"],
+                            scores=candidate["scores"],
+                            metadata=info,
+                            version=associations["version"]
+                            + ":"
+                            + hashlib.sha256(
+                                json.dumps(
+                                    info["model_versions"] or result["version"],
+                                    sort_keys=True,
+                                ).encode()
+                            ).hexdigest()[:24],
+                            method="association_research",
+                        )
+                    )
         methods = {r["method"] for r in by_star.values()}
         payload = dict(
             method=next(iter(methods)) if len(methods) == 1 else "per_star",
@@ -668,6 +754,8 @@ class BingoRuntime:
             profile_status=self._profile_status,
             shadow_count=len(shadows),
             research_strategies=research_predictions,
+            associations=associations,
+            association_error=result.get("association_error"),
             today_status={
                 k: v
                 for k, v in today.items()
@@ -714,6 +802,7 @@ class BingoRuntime:
                 self.adaptive.to_dict(),
                 self.performance.to_dict(),
                 self.families.to_dict(),
+                self.association_tracker.to_dict(),
             )
             try:
                 if self.snapshot:
@@ -726,7 +815,7 @@ class BingoRuntime:
                     + [
                         r
                         for r in target["shadow_rows"]
-                        if r["model"].startswith("strategy_")
+                        if r["model"].startswith(("strategy_", "association_"))
                     ],
                     sync=self.sync,
                     model_statuses=self.workers.models,
@@ -751,6 +840,7 @@ class BingoRuntime:
                     "events", []
                 ) + self.adaptive.observe_profile_outcomes(term, target["shadow_rows"])
                 events += self.families.observe(term, target["shadow_rows"])
+                events += self.association_tracker.observe(term, target["shadow_rows"])
                 compact = {k: v for k, v in report.items() if k != "models"}
                 compact["models"] = [
                     {
@@ -773,6 +863,7 @@ class BingoRuntime:
                         "adaptive": self.adaptive.to_dict(),
                         "monitor": self.performance.to_dict(),
                         "families": self.families.to_dict(),
+                        "associations": self.association_tracker.to_dict(),
                     },
                     compact,
                     events,
@@ -782,6 +873,7 @@ class BingoRuntime:
                 self.adaptive = AdaptiveController(backup[0])
                 self.performance = PerformanceMonitor(backup[1])
                 self.families = ResearchStrategies(backup[2])
+                self.association_tracker = AssociationTracker(backup[3])
                 raise
         self._strategy_events = await self.store.strategy_events(limit=30)
         self._diagnostics = await self.store.latest_diagnostics(limit=30)
@@ -850,6 +942,45 @@ class BingoRuntime:
             ),
         )
 
+    def associations(self):
+        """Serve only the immutable bundle; never mine rules in an HTTP request."""
+        prediction = self.prediction or {}
+        frozen = copy.deepcopy(prediction.get("associations") or {})
+        tracked = self.association_tracker.status()
+        boards = {}
+        for stars, group in tracked["stars"].items():
+            rows = group["leaderboard"]
+            boards[stars] = {
+                "cumulative": rows,
+                **{
+                    "recent" + str(window): [
+                        {
+                            **r["recent"][str(window)],
+                            "model": r["model"],
+                            "name": r["name"],
+                            "id": r["id"],
+                        }
+                        for r in rows
+                    ]
+                    for window in (100, 300)
+                },
+            }
+        return dict(
+            frozen,
+            source_term=prediction.get("source_term"),
+            target_term=prediction.get("target_term"),
+            target_time=prediction.get("target_time"),
+            sealed_at=prediction.get("created_at"),
+            leaderboards=boards,
+            observations=tracked["observations"],
+            diagnostics=tracked["diagnostics"],
+            revalidation_requests=tracked["revalidation_requests"],
+            error=prediction.get("association_error"),
+            model_comparison=self.boards,
+            automatic_adoption=False,
+            state="sealed" if frozen else "waiting",
+        )
+
     async def _maybe_train(self):
         if (
             not settings.AUTO_TRAIN
@@ -859,10 +990,16 @@ class BingoRuntime:
         ):
             return
         now = self.clock()
+        # Today Only has its own artifact namespace. Its failure must not make
+        # the healthy cross-day model enter the Historical repair loop.
+        historical_failed = (
+            self.workers.training.get("state") == "failed"
+            and self.workers.training.get("scope") != "today"
+        )
         if (
             self._last_train_term == self.snapshot[-1]["draw_term"]
             and self._last_train_time
-            and self.workers.training.get("state") != "failed"
+            and not historical_failed
         ):
             await self._maybe_today_train()
             return
@@ -880,11 +1017,14 @@ class BingoRuntime:
                 len(self.snapshot) - cutoffs[0] - 1 if cutoffs else len(self.snapshot)
             )
             failed_retry = (
-                self.workers.training.get("state") == "failed"
+                historical_failed
                 and (now - self._last_train_time).total_seconds() >= 60
             )
             if new_draws < settings.RETRAIN_MIN_DRAWS and not failed_retry:
-                await self._maybe_today_train()
+                # Preserve a pending Historical repair during its60s backoff;
+                # a Today job must not overwrite that failure's scope.
+                if not historical_failed:
+                    await self._maybe_today_train()
                 return
         await self.start_training()
 
@@ -895,6 +1035,18 @@ class BingoRuntime:
             self.snapshot[-1]["draw_term"], self.snapshot[-1]["draw_datetime"]
         )
         day = target_at.date().isoformat()
+        today_failed = (
+            self.workers.training.get("state") == "failed"
+            and self.workers.training.get("scope") == "today"
+            and self.workers.training.get("target_date", day) == day
+        )
+        if (
+            today_failed
+            and self._last_today_train_date == day
+            and self._last_today_train_time is not None
+            and (self.clock() - self._last_today_train_time).total_seconds() < 60
+        ):
+            return
         today = [
             d
             for d in self.snapshot
@@ -915,7 +1067,8 @@ class BingoRuntime:
                 seen = indexes[0] + 1 if indexes else 0
                 maturity = any(seen < n <= len(today) for n in (10, 32, 80, 96))
                 train = (
-                    maturity
+                    today_failed
+                    or maturity
                     or len(today) - seen >= 36
                     or old.get("context_limit") != self.workers.window
                     or old.get("source_dates") != [day]
@@ -923,6 +1076,8 @@ class BingoRuntime:
             except (ValueError, KeyError, OSError):
                 pass
         if train:
+            self._last_today_train_time = self.clock()
+            self._last_today_train_date = day
             await self.workers.start(
                 "today_train", copy.deepcopy(today), {"target_date": day}
             )
@@ -987,7 +1142,7 @@ class BingoRuntime:
             )
         self.snapshot = await self.store.history(limit=10000)
         mode = options.get("mode", "fixed")
-        if mode not in ("fixed", "adaptive", "nested"):
+        if mode not in ("fixed", "adaptive", "nested", "associations"):
             raise ValueError("未知回測模式")
         if mode != "fixed" and options.get("count", 100) > 1000:
             raise ValueError("巢狀比較每次最多1000期")
@@ -1069,7 +1224,11 @@ class BingoRuntime:
             else None,
             sync=sync,
             target=self.target,
-            prediction=self.prediction,
+            # Rule evidence has its own slower, on-demand endpoint. Avoid
+            # retransmitting the complete rule tree on every5s status poll.
+            prediction={k: v for k, v in self.prediction.items() if k != "associations"}
+            if self.prediction
+            else None,
             models=self.workers.models,
             training=self.workers.training,
             leaderboards=self.boards,

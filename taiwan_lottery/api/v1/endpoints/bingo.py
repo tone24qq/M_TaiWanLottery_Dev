@@ -20,7 +20,7 @@ def runtime(request: Request):
 
 
 class BacktestRequest(BaseModel):
-    mode: Literal["fixed", "adaptive", "nested"] = "fixed"
+    mode: Literal["fixed", "adaptive", "nested", "associations"] = "fixed"
     count: int = Field(100, ge=1, le=10000)
     start_term: str | None = Field(None, pattern=r"^\d{1,20}$")
     end_term: str | None = Field(None, pattern=r"^\d{1,20}$")
@@ -44,6 +44,11 @@ async def status(request: Request):
 @router.get("/intelligence")
 async def intelligence(request: Request):
     return runtime(request).intelligence()
+
+
+@router.get("/associations")
+async def associations(request: Request):
+    return runtime(request).associations()
 
 
 @router.get("/audit/{term}")

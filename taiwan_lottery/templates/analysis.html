@@ -32,6 +32,7 @@
         <option value="nested" selected>雙層 Walk-forward</option>
         <option value="fixed">固定視窗基準</option>
         <option value="adaptive">智慧視窗比較</option>
+        <option value="associations">A／B／C 關聯比較</option>
       </select></label>
       <label
         >最近期數<select name="count">
@@ -71,6 +72,8 @@
   </section>
   {% set intelligence_expanded = true %}
   {% include "intelligence.html" %}
+  {% set associations_expanded = true %}
+  {% include "associations.html" %}
   <div class="analysis-grid">
     <section class="panel" aria-labelledby="frequency-title">
       <div class="panel-heading">

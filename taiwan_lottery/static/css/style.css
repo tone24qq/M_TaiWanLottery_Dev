@@ -1126,3 +1126,208 @@ details[open] > .intelligence-summary::after,
 .parallel-research-numbers { display:flex;flex-wrap:wrap;gap:.35rem;margin:.5rem 0; }
 .parallel-research-numbers .ball { width:32px;height:32px;font-size:.82rem; }
 @media(max-width:760px) { .parallel-research-cards { grid-template-columns:minmax(0,1fr); } }
+
+/* ABC associations remain a separate, optional research surface. */
+.associations-panel {
+  margin-top: 22px;
+}
+.associations-summary,
+.association-records > summary,
+.association-evidence > summary,
+.association-full-ranking > summary {
+  cursor: pointer;
+}
+.associations-summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+.associations-summary::-webkit-details-marker {
+  display: none;
+}
+.associations-summary > div {
+  min-width: 0;
+  flex: 1;
+}
+.associations-summary h2 {
+  margin-bottom: 5px;
+}
+.associations-summary::after {
+  content: "+";
+  color: var(--brand);
+  font-size: 1.2rem;
+}
+#associations-details[open] > summary::after {
+  content: "−";
+}
+.associations-summary:focus-visible,
+.association-records > summary:focus-visible,
+.association-evidence > summary:focus-visible,
+.association-full-ranking > summary:focus-visible {
+  outline: 3px solid #e6a83b;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.associations-content {
+  margin-top: 18px;
+}
+.association-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 15px 0;
+}
+.association-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+}
+.association-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fbfcfd;
+  overflow-wrap: anywhere;
+}
+.association-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.association-card-header h3 {
+  min-width: 0;
+}
+.association-card-header .badge {
+  white-space: normal;
+  max-width: 125px;
+  text-align: right;
+}
+.association-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 15px 0 10px;
+}
+.association-numbers .ball {
+  width: 35px;
+  height: 35px;
+  color: var(--brand);
+  background: white;
+  font-size: 0.86rem;
+}
+.association-score-line {
+  font-size: 0.73rem;
+  color: var(--muted);
+  margin: 7px 0;
+  line-height: 1.8;
+}
+.association-reasons {
+  margin: 12px 0;
+  padding-left: 19px;
+  font-size: 0.77rem;
+}
+.association-reasons li + li {
+  margin-top: 6px;
+}
+.association-history {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin: 10px 0;
+}
+.association-evidence {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.association-evidence > summary,
+.association-full-ranking > summary,
+.association-records > summary {
+  color: var(--brand);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.association-evidence-content > p {
+  margin-top: 10px;
+}
+.association-evidence-scroll {
+  max-height: 330px;
+}
+.association-evidence-table {
+  min-width: 780px;
+}
+.association-evidence-table td:first-child {
+  max-width: 220px;
+}
+.association-full-ranking {
+  margin-top: 14px;
+}
+.association-ranking-scroll {
+  max-height: 260px;
+}
+.association-ranking-table {
+  min-width: 230px;
+}
+.association-evidence-scroll th,
+.association-ranking-scroll th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.association-download {
+  margin-top: 12px;
+  border: 0;
+  padding: 4px 0;
+  background: transparent;
+  color: var(--brand);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.association-records {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.association-board-table {
+  min-width: 620px;
+}
+.association-board-table .subtle {
+  display: block;
+  margin-top: 3px;
+}
+@media (max-width: 1050px) {
+  .association-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .associations-panel {
+    margin-top: 16px;
+  }
+  .associations-summary {
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .associations-summary > .badge {
+    white-space: normal;
+    max-width: 86px;
+    font-size: 0.68rem;
+    padding: 4px 7px;
+  }
+  .associations-summary::after {
+    margin-top: 3px;
+  }
+  .association-card {
+    padding: 13px;
+  }
+  .association-numbers .ball {
+    width: 37px;
+    height: 37px;
+  }
+}

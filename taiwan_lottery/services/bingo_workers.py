@@ -250,7 +250,16 @@ def _backtest(draws, options, threads, window, messages, directory=None, run_id=
         with threadpool_limits(limits=threads):
             options = dict(options)
             mode = options.pop("mode", "fixed")
-            if mode == "adaptive":
+            if mode == "associations":
+                from taiwan_lottery.ml.bingo_association_evaluation import (
+                    association_walk_forward,
+                )
+
+                report = association_walk_forward(
+                    draws, threads=threads, window=window, progress=progress, **options
+                )
+                report["requested_mode"] = mode
+            elif mode == "adaptive":
                 from taiwan_lottery.ml.bingo_adaptive_evaluation import (
                     adaptive_walk_forward,
                 )
@@ -497,26 +506,58 @@ def infer(
             plan.get("target_date"),
             baseline_only=baseline_only,
         )
+        try:
+            from taiwan_lottery.ml.bingo_associations import association_candidates
+            from taiwan_lottery.ml.bingo_evaluation import fuse
+
+            by_star = result.get("by_star_scores") or {
+                str(k): scores for k in (3, 4, 5)
+            }
+            weights = {
+                str(k): fuse(
+                    by_star[str(k)],
+                    plan.get("vote_methods", {}).get(str(k), "shrink"),
+                    k,
+                    plan.get("association_performance", []),
+                )["weights"]
+                for k in (3, 4, 5)
+            }
+            requested_windows = sorted(
+                {
+                    int(w)
+                    for row in plan.get("champions", {}).values()
+                    for w in row.values()
+                    if int(w) >= 100
+                }
+            )
+            with threadpool_limits(limits=threads):
+                result["associations"] = association_candidates(
+                    draws,
+                    by_star,
+                    windows=sorted({200, 500, max(requested_windows or [window])}),
+                    model_weights_by_star=weights,
+                    target_date=plan.get("target_date"),
+                )
+        except Exception as exc:
+            # A failed research engine cannot prevent the original forecasts.
+            result["association_error"] = f"{type(exc).__name__}: {exc}"
     return result
 
 
 def infer_today(draws, directory, threads, target_date, *, baseline_only=False):
     """A separate date-scoped artifact; previous-day weights are never consulted."""
-    from taiwan_lottery.bingo_clock import to_taipei
     from taiwan_lottery.ml.bingo_models import draw_matrix
 
     target_date = (
-        target_date or to_taipei(draws[-1]["draw_datetime"]).date().isoformat()
+        target_date or _time(draws[-1]["draw_datetime"]).date().isoformat()
     )
     today = [
         d
         for d in draws
-        if to_taipei(d["draw_datetime"]).date().isoformat() == target_date
+        if _time(d["draw_datetime"]).date().isoformat() == target_date
     ]
     started = time.perf_counter()
     if len(today) < 10:
-        import numpy as np
-
         matrix = draw_matrix([d["numbers"] for d in today])
         # Beta(2,6) prior, updated only by known target-day observations.
         # At n=0 this is an explicit uniform .25 prior, never fabricated training.
@@ -670,6 +711,7 @@ class WorkerManager:
             from datetime import date
 
             day = date.fromisoformat(options["target_date"]).isoformat()
+            state["target_date"] = day
             if any(_time(d["draw_datetime"]).date().isoformat() != day for d in draws):
                 state.update(state="failed", error="當日訓練資料混入其他日期，已拒絕")
                 raise ValueError("Today Only 訓練不能使用其他日期資料")
