@@ -21,3 +21,6 @@ lightgbm>=4.5,<5
 catboost>=1.2.7,<2
 # For CPU-only installation use the official PyTorch CPU wheel index first.
 torch>=2.2,<3
+
+# Nonblocking process telemetry for the strategy monitor
+psutil>=5.9,<8

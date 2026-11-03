@@ -1,0 +1,55 @@
+<section class="panel intelligence-panel" aria-labelledby="intelligence-title">
+  <details id="intelligence-details" {% if intelligence_expanded %}open{% endif %}>
+    <summary class="intelligence-summary">
+      <div>
+        <p class="eyebrow">05 / 智慧策略監控</p>
+        <h2 id="intelligence-title">視窗、模型與實戰健康</h2>
+        <p id="intelligence-summary" class="small subtle">讀取正式策略與候選驗證狀態</p>
+      </div>
+      <span id="intelligence-state" class="badge neutral" role="status">等待資料</span>
+    </summary>
+    <div class="intelligence-content">
+      <p id="intelligence-policy" class="report-note">固定視窗保留為基準；候選策略先以影子模式驗證。連續未全中本身不會觸發換號。</p>
+      <p id="intelligence-error" class="error-detail" role="status" hidden></p>
+      <div class="intelligence-toolbar">
+        <div class="segmented" role="group" aria-label="智慧策略星數">
+          <button class="active" data-intelligence-star="3" aria-pressed="true">三星</button>
+          <button data-intelligence-star="4" aria-pressed="false">四星</button>
+          <button data-intelligence-star="5" aria-pressed="false">五星</button>
+        </div>
+        <span id="intelligence-updated" class="small subtle">尚無結算監控</span>
+      </div>
+      <dl class="intelligence-overview">
+        <div><dt>正式／候選狀態</dt><dd id="intelligence-champion">—</dd></div>
+        <div><dt>最近策略調整</dt><dd id="intelligence-last-change">—</dd></div>
+        <div><dt>累計策略選擇次數</dt><dd id="intelligence-selections">—</dd></div>
+        <div><dt>候選評估工作</dt><dd id="intelligence-evaluation">—</dd></div>
+      </dl>
+      <section class="parallel-research" aria-labelledby="parallel-research-title">
+        <h3 id="parallel-research-title">三套並行實戰策略</h3>
+        <p id="parallel-research-status" class="small subtle">每期開獎前封存；至少300共同期數、跨至少3日後才評估正式切換。</p>
+        <div id="parallel-research-cards" class="parallel-research-cards"><p class="empty">尚無並行策略封存</p></div>
+      </section>
+      <div id="intelligence-alerts" class="intelligence-alerts" aria-live="polite"><p class="small subtle">等待資料健康與預測穩定性檢查</p></div>
+      <p id="intelligence-consensus" class="small subtle"></p>
+      <div id="intelligence-models" class="intelligence-models"><p class="empty">尚無可稽核的模型視窗與實績</p></div>
+      <details class="intelligence-advanced">
+        <summary>調整紀錄與資源使用</summary>
+        <div class="intelligence-advanced-content">
+          <p class="small subtle">只顯示實際量測；未提供的指標保留空值。CPU 百分比為工作程序量測值，可能包含多個核心。</p>
+          <dl class="resource-grid">
+            <div><dt>CPU 使用</dt><dd id="resource-cpu">—</dd></div>
+            <div><dt>程序記憶體</dt><dd id="resource-memory">—</dd></div>
+            <div><dt>最近訓練耗時</dt><dd id="resource-training">—</dd></div>
+            <div><dt>最近推論耗時</dt><dd id="resource-inference">—</dd></div>
+            <div><dt>最近回測耗時</dt><dd id="resource-backtest">—</dd></div>
+            <div><dt>目前工作</dt><dd id="resource-jobs">—</dd></div>
+          </dl>
+          <div id="resource-workers" class="resource-workers"></div>
+          <h3 class="intelligence-events-title">策略與回退紀錄</h3>
+          <div id="intelligence-events"><p class="empty">尚無策略調整紀錄；不會為了產生變化而強制換號。</p></div>
+        </div>
+      </details>
+    </div>
+  </details>
+</section>

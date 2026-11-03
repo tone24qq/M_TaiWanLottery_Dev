@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     HISTORY_MIN_DRAWS: int = Field(100, ge=10, le=10000)
     MAX_BACKFILL_DAYS: int = Field(31, ge=3, le=366)
     AUTO_TRAIN: bool = True
+    ADAPTIVE_ENABLED: bool = True
+    AUTO_VALIDATE: bool = True
+    ADAPTIVE_SHADOW_BUDGET: int = Field(3, ge=2, le=3)
+    VALIDATION_COOLDOWN_SECONDS: int = Field(86400, ge=3600)
+    VALIDATION_COUNT: int = Field(100, ge=100, le=1000)
     BINGO_SCRAPE_URL: str = (
         "https://www.taiwanlottery.com/lotto/bingobingo/history.aspx"
     )

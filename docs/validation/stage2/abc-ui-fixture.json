@@ -1,0 +1,33 @@
+{
+  "fixture_only": true,
+  "browser": "system Chromium viaPlaywright",
+  "widths": [
+    1440,
+    390,
+    320
+  ],
+  "checks": [
+    "original4blocks andintelligence preserved",
+    "independent3/4/5 tabs",
+    "3ABCcards preserveAPIorder",
+    "lazy evidence",
+    "max3reasons",
+    "historicalfrequency/Lift context",
+    "complete80ranking",
+    "exactsealedrecorddownload",
+    "separateABCcumulative/recent100/recent300boards",
+    "1440/390/320bothpagesnooverflow",
+    "linkedIDs/objectrules andcausal discovery/selection/confirmation statistics",
+    "APItext/evidence injection safe",
+    "unsealedstateshonest",
+    "invalidnumbersnotmanufactured",
+    "failureisolation/retainedsnapshot/retry",
+    "20snonoverlap andhiddenpause",
+    "basearchive timestamp cannot mislabel absentABC as sealed",
+    "emptydata notfakecandidates"
+  ],
+  "findings": [],
+  "pageerrors": [],
+  "association_calls": 13,
+  "write_requests": []
+}

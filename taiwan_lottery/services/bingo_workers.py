@@ -13,7 +13,9 @@ import os
 from pathlib import Path
 import pickle
 import queue
+import time
 from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from datetime import datetime
 from uuid import uuid4
 
@@ -68,6 +70,12 @@ def _publish(suite, draws, directory, version, *, online=False, base_sha256=None
         source_time=str(draws[-1]["draw_datetime"]),
         snapshot_hash=snapshot_hash(draws),
         statuses=suite.statuses(),
+        training_history_start=draws[-min(len(draws), len(suite.history))]["draw_term"],
+        training_samples=len(suite.history),
+        context_limit=suite.window,
+        source_dates=sorted(
+            {_time(d["draw_datetime"]).date().isoformat() for d in draws}
+        ),
     )
     if online:
         manifest["base_sha256"] = base_sha256
@@ -100,7 +108,9 @@ def _prune_artifacts(directory, retain=32):
             path.unlink(missing_ok=True)
 
 
-def _training(draws, directory, threads, window, version, messages, enabled=None):
+def _training(
+    draws, directory, threads, window, version, messages, enabled=None, profiles=None
+):
     _limit(threads)
     from threadpoolctl import threadpool_limits
     from taiwan_lottery.ml.bingo_models import ModelSuite
@@ -135,6 +145,12 @@ def _training(draws, directory, threads, window, version, messages, enabled=None
                     name: copy.deepcopy(previous.records[name])
                     for name in previous_models
                 }
+                for name, record in previous_records.items():
+                    record.setdefault(
+                        "training_source_term", old_manifest["source_term"]
+                    )
+                    record.setdefault("training_history_start", draws[0]["draw_term"])
+                    record.setdefault("training_history_count", len(previous.history))
                 suite.models.update(previous_models)
                 suite.records.update(previous_records)
             except Exception:
@@ -153,7 +169,11 @@ def _training(draws, directory, threads, window, version, messages, enabled=None
                     )
                 elif status == "ready":
                     suite.records[model].update(
-                        training_snapshot=snapshot_hash(draws), training_version=version
+                        training_snapshot=snapshot_hash(draws),
+                        training_version=version,
+                        training_source_term=draws[-1]["draw_term"],
+                        training_history_start=draws[0]["draw_term"],
+                        training_history_count=len(draws),
                     )
                 messages.put(
                     dict(
@@ -174,12 +194,38 @@ def _training(draws, directory, threads, window, version, messages, enabled=None
             if not suite.scores([d["numbers"] for d in draws]):
                 raise ValueError("訓練完成但無有效模型")
             _publish(suite, draws, directory, version)
+            if profiles:
+                from taiwan_lottery.ml.bingo_profile_artifacts import (
+                    train_validated_profiles,
+                )
+
+                def profile_progress(name, done, total, status):
+                    messages.put(
+                        dict(
+                            type="progress",
+                            current_model="profile/" + name,
+                            completed=done,
+                            total=total,
+                            progress=100 * done / max(total, 1),
+                            state=status,
+                        )
+                    )
+
+                profile_report = train_validated_profiles(
+                    draws,
+                    directory,
+                    profiles,
+                    threads,
+                    profile_progress,
+                    enabled=enabled,
+                )
+                messages.put(dict(type="progress", profiles=profile_report))
             messages.put(dict(type="done", models=suite.statuses()))
     except Exception as exc:
         messages.put(dict(type="error", error=f"{type(exc).__name__}: {exc}"))
 
 
-def _backtest(draws, options, threads, window, messages):
+def _backtest(draws, options, threads, window, messages, directory=None, run_id=None):
     _limit(threads)
     from threadpoolctl import threadpool_limits
     from taiwan_lottery.ml.bingo_evaluation import walk_forward
@@ -202,9 +248,73 @@ def _backtest(draws, options, threads, window, messages):
 
     try:
         with threadpool_limits(limits=threads):
-            report = walk_forward(
-                draws, threads=threads, window=window, progress=progress, **options
+            options = dict(options)
+            mode = options.pop("mode", "fixed")
+            if mode == "associations":
+                from taiwan_lottery.ml.bingo_association_evaluation import (
+                    association_walk_forward,
+                )
+
+                report = association_walk_forward(
+                    draws, threads=threads, window=window, progress=progress, **options
+                )
+                report["requested_mode"] = mode
+            elif mode == "adaptive":
+                from taiwan_lottery.ml.bingo_adaptive_evaluation import (
+                    adaptive_walk_forward,
+                )
+
+                report = adaptive_walk_forward(
+                    draws, threads=threads, window=window, progress=progress, **options
+                )
+                report["requested_mode"] = mode
+            elif mode == "nested":
+                from taiwan_lottery.ml.bingo_nested import nested_walk_forward
+
+                report = nested_walk_forward(
+                    draws, threads=threads, window=window, progress=progress, **options
+                )
+                report["requested_mode"] = mode
+            else:
+                report = walk_forward(
+                    draws, threads=threads, window=window, progress=progress, **options
+                )
+        if directory and run_id and report.get("folds") is not None:
+            import gzip
+
+            reports = Path(directory) / "reports"
+            reports.mkdir(parents=True, exist_ok=True)
+            path = reports / (run_id + ".json.gz")
+            temporary = path.with_suffix(".tmp")
+            with gzip.open(temporary, "wt", encoding="utf-8") as stream:
+                json.dump(report, stream, ensure_ascii=False, allow_nan=False)
+            temporary.replace(path)
+            checksum = hashlib.sha256()
+            with path.open("rb") as stream:
+                for block in iter(lambda: stream.read(1024 * 1024), b""):
+                    checksum.update(block)
+            summary = {
+                k: v
+                for k, v in report.items()
+                if k not in ("folds", "results", "baseline", "shadow")
+            }
+            for name in ("baseline", "shadow"):
+                summary[name] = {
+                    k: v
+                    for k, v in report.get(name, {}).items()
+                    if k not in ("folds", "results")
+                }
+            summary["artifact"] = dict(
+                id=run_id,
+                sha256=checksum.hexdigest(),
+                bytes=path.stat().st_size,
+                format="gzip-json",
+                fold_count=report.get("count"),
             )
+            summary["artifact_download_url"] = (
+                "/api/v1/bingo/backtest/artifact/" + run_id
+            )
+            report = summary
         messages.put(dict(type="done", report=report))
     except Exception as exc:
         messages.put(dict(type="error", error=f"{type(exc).__name__}: {exc}"))
@@ -249,7 +359,9 @@ def _load_checkpoint(manifest, draws, directory):
     return suite, index
 
 
-def infer(draws, directory, threads, window):
+def infer(
+    draws, directory, threads, window, plan=None, day_scope=None, baseline_only=False
+):
     _limit(threads)
     from threadpoolctl import threadpool_limits
     from taiwan_lottery.ml.bingo_models import ModelSuite
@@ -260,13 +372,15 @@ def infer(draws, directory, threads, window):
     directory = str(Path(directory).resolve())
     manifest = {}
     suite = None
-    warning = None
+    warning = "推論程序已隔離，暫用統計模型並等待背景修復" if baseline_only else None
     checkpoint = None
     cutoff = None
     try:
         path = Path(directory) / "current.json"
-        if path.exists():
+        if path.exists() and not baseline_only:
             manifest = json.loads(path.read_text())
+            if day_scope and manifest.get("source_dates") != [day_scope]:
+                raise ValueError("當日模型工件不得含其他日期或不明訓練範圍")
             # Source cutoff must be part of this caller's verified history.
             _cutoff(manifest, draws)
             cached = _INFERENCE_CACHE.get(directory)
@@ -311,9 +425,31 @@ def infer(draws, directory, threads, window):
             for draw in draws[cutoff + 1 :]:
                 previous = suite.history
                 suite.update(previous, draw["numbers"])
+                if "river" in suite.models:
+                    record = suite.records["river"]
+                    record.setdefault(
+                        "batch_training_cutoff",
+                        record.get("training_source_term", manifest.get("source_term")),
+                    )
+                    record["training_source_term"] = draw["draw_term"]
+                    record["training_history_count"] = (
+                        record.get("training_history_count", len(previous)) + 1
+                    )
                 suite.history = (previous + [list(draw["numbers"])])[-suite.window :]
             version = manifest["version"]
-        scores = suite.scores(history)
+        extra = {}
+        if plan is not None:
+            from taiwan_lottery.ml.bingo_contexts import context_scores
+
+            safe_plan = copy.deepcopy(plan)
+            if baseline_only:
+                safe_plan["profiles_by_star"] = {}
+            extra = context_scores(
+                suite, draws, safe_plan, directory=directory, threads=threads
+            )
+            scores = extra.pop("scores")
+        else:
+            scores = suite.scores(history)
         if not scores:
             raise ValueError("無可用模型分數")
     records = suite.statuses()
@@ -343,18 +479,133 @@ def infer(draws, directory, threads, window):
             _INFERENCE_CACHE[directory] = dict(
                 base_sha256=manifest["sha256"], manifest=checkpoint, suite=suite
             )
-    return dict(
+    result = dict(
         scores=scores,
         models=records,
-        version=(version + "-" + manifest["sha256"][:12])
+        version=(version + "-" + (checkpoint or manifest)["sha256"][:12])
         if version != "baseline"
         else version,
         snapshot_hash=snapshot_hash(draws),
         warning=warning,
+        training_cutoff=manifest.get("source_term", draws[-1]["draw_term"])
+        if version != "baseline"
+        else draws[-1]["draw_term"],
+        training_history_start=manifest.get(
+            "training_history_start", draws[0]["draw_term"]
+        ),
+        training_samples=manifest.get("training_samples", len(suite.history)),
+        pid=os.getpid(),
+        context_limit=suite.window,
+        **extra,
     )
+    if plan is not None:
+        result["today"] = infer_today(
+            draws,
+            directory,
+            threads,
+            plan.get("target_date"),
+            baseline_only=baseline_only,
+        )
+        try:
+            from taiwan_lottery.ml.bingo_associations import association_candidates
+            from taiwan_lottery.ml.bingo_evaluation import fuse
+
+            by_star = result.get("by_star_scores") or {
+                str(k): scores for k in (3, 4, 5)
+            }
+            weights = {
+                str(k): fuse(
+                    by_star[str(k)],
+                    plan.get("vote_methods", {}).get(str(k), "shrink"),
+                    k,
+                    plan.get("association_performance", []),
+                )["weights"]
+                for k in (3, 4, 5)
+            }
+            requested_windows = sorted(
+                {
+                    int(w)
+                    for row in plan.get("champions", {}).values()
+                    for w in row.values()
+                    if int(w) >= 100
+                }
+            )
+            with threadpool_limits(limits=threads):
+                result["associations"] = association_candidates(
+                    draws,
+                    by_star,
+                    windows=sorted({200, 500, max(requested_windows or [window])}),
+                    model_weights_by_star=weights,
+                    target_date=plan.get("target_date"),
+                )
+        except Exception as exc:
+            # A failed research engine cannot prevent the original forecasts.
+            result["association_error"] = f"{type(exc).__name__}: {exc}"
+    return result
+
+
+def infer_today(draws, directory, threads, target_date, *, baseline_only=False):
+    """A separate date-scoped artifact; previous-day weights are never consulted."""
+    from taiwan_lottery.ml.bingo_models import draw_matrix
+
+    target_date = (
+        target_date or _time(draws[-1]["draw_datetime"]).date().isoformat()
+    )
+    today = [
+        d
+        for d in draws
+        if _time(d["draw_datetime"]).date().isoformat() == target_date
+    ]
+    started = time.perf_counter()
+    if len(today) < 10:
+        matrix = draw_matrix([d["numbers"] for d in today])
+        # Beta(2,6) prior, updated only by known target-day observations.
+        # At n=0 this is an explicit uniform .25 prior, never fabricated training.
+        probabilities = ((matrix.sum(axis=0) + 2) / (len(today) + 8)).tolist()
+        result = dict(
+            scores={"today_prior": probabilities},
+            models=[],
+            version="today-beta-prior-v1",
+            training_cutoff=None,
+            training_history_start=None,
+            training_samples=len(today),
+            warning=None,
+        )
+        reason = "當日樣本少於10期，使用明示的當日Beta先驗，尚未訓練其他模型"
+    else:
+        path = Path(directory) / "today" / target_date
+        result = infer(
+            today,
+            str(path),
+            threads,
+            max(100, min(1000, len(today))),
+            day_scope=target_date,
+            baseline_only=baseline_only,
+        )
+        reason = "所有模型工件、特徵與增量更新均限制於目標當天"
+    used = min(len(today), result.get("context_limit", len(today)))
+    result.update(
+        target_date=target_date,
+        available_count=len(today),
+        history_count=used,
+        history_start=today[-used]["draw_term"] if used else None,
+        history_end=today[-1]["draw_term"] if today else None,
+        history_dates=[target_date] if today else [],
+        snapshot_hash=snapshot_hash(today),
+        warmup=len(today) < 10,
+        scoring_cost_seconds=time.perf_counter() - started,
+        reason=reason,
+    )
+    # Date namespaces cannot leave an unbounded process-local cache after months.
+    day_keys = [key for key in _INFERENCE_CACHE if "/today/" in key]
+    for key in sorted(day_keys)[:-3]:
+        _INFERENCE_CACHE.pop(key, None)
+    return result
 
 
 class WorkerManager:
+    adaptive_scoring = True
+
     def __init__(self, directory, threads=2, window=1000, on_backtest=None):
         self.directory = str(directory)
         self.threads = max(1, min(threads, os.cpu_count() or 1, 8))
@@ -370,6 +621,13 @@ class WorkerManager:
             state="waiting", progress=0, completed=0, total=0, report=None
         )
         self.models = []
+        self.inference_pid = None
+        self.inference_quarantined = False
+        self.job_started = None
+        self.active_kind = None
+        self.last_training_seconds = None
+        self.last_backtest_seconds = None
+        self.last_inference_seconds = None
         self._stopping = False
         self._closed = False
         manifest = Path(directory) / "current.json"
@@ -383,12 +641,40 @@ class WorkerManager:
     def busy(self):
         return self.process is not None
 
-    async def score(self, draws):
+    async def score(self, draws, plan=None):
         if self._closed:
             raise ValueError("背景工作已關閉")
-        result = await asyncio.get_running_loop().run_in_executor(
-            self.executor, infer, draws, self.directory, self.threads, self.window
-        )
+        started = time.perf_counter()
+        loop = asyncio.get_running_loop()
+        try:
+            result = await loop.run_in_executor(
+                self.executor,
+                infer,
+                draws,
+                self.directory,
+                self.threads,
+                self.window,
+                plan,
+                None,
+                self.inference_quarantined,
+            )
+        except BrokenProcessPool:
+            self.executor.shutdown(wait=False, cancel_futures=True)
+            self.executor = ProcessPoolExecutor(max_workers=1, mp_context=self.context)
+            self.inference_quarantined = True
+            result = await loop.run_in_executor(
+                self.executor,
+                infer,
+                draws,
+                self.directory,
+                self.threads,
+                self.window,
+                plan,
+                None,
+                True,
+            )
+        self.last_inference_seconds = time.perf_counter() - started
+        self.inference_pid = result.get("pid")
         if not self.busy:
             self.models = result["models"]
         return result
@@ -396,37 +682,69 @@ class WorkerManager:
     async def start(self, kind, draws, options=None):
         if self._closed:
             raise ValueError("背景工作已關閉")
-        if kind not in ("train", "backtest"):
+        if kind not in ("train", "today_train", "backtest"):
             raise ValueError("未知背景工作")
         if self.busy:
             raise ValueError("背景工作執行中，請等待完成或停止訓練")
         if len(draws) < 10:
             raise ValueError("至少需要 10 期已驗證資料")
-        state = self.training if kind == "train" else self.backtest
+        state = self.training if kind in ("train", "today_train") else self.backtest
         state.clear()
-        state.update(state="running", progress=0, completed=0, total=0, error=None)
+        state.update(
+            state="running",
+            progress=0,
+            completed=0,
+            total=0,
+            error=None,
+            scope="today"
+            if kind == "today_train"
+            else "historical"
+            if kind == "train"
+            else "validation",
+        )
         version = uuid4().hex
         state["run_id"] = version
         # A manager queue cannot be corrupted by killing a child halfway through
         # writing a large backtest report. Its small server consumes no model CPU.
+        options = options or {}
+        if kind == "today_train":
+            from datetime import date
+
+            day = date.fromisoformat(options["target_date"]).isoformat()
+            state["target_date"] = day
+            if any(_time(d["draw_datetime"]).date().isoformat() != day for d in draws):
+                state.update(state="failed", error="當日訓練資料混入其他日期，已拒絕")
+                raise ValueError("Today Only 訓練不能使用其他日期資料")
         manager = self.context.Manager()
         messages = manager.Queue()
-        options = options or {}
         args = (
             (
                 draws,
-                self.directory,
+                str(Path(self.directory) / "today" / str(options["target_date"]))
+                if kind == "today_train"
+                else self.directory,
                 self.threads,
                 self.window,
                 version,
                 messages,
                 options.get("enabled"),
+                options.get("validated_profiles"),
             )
-            if kind == "train"
-            else (draws, options, self.threads, self.window, messages)
+            if kind in ("train", "today_train")
+            else (
+                draws,
+                options,
+                self.threads,
+                self.window,
+                messages,
+                self.directory,
+                version,
+            )
         )
         process = self.context.Process(
-            target=_training if kind == "train" else _backtest, args=args, daemon=True
+            target=_training if kind in ("train", "today_train") else _backtest,
+            args=args,
+            daemon=True,
         )
         try:
             process.start()
@@ -435,6 +753,8 @@ class WorkerManager:
             state.update(state="failed", error="無法啟動背景工作")
             raise
         self.process, self.messages, self._stopping = process, messages, False
+        self.job_started = time.monotonic()
+        self.active_kind = kind
         self.monitor = asyncio.create_task(
             self._monitor(kind, state, process, messages, manager)
         )
@@ -451,7 +771,10 @@ class WorkerManager:
                         break
                     event = item.pop("type")
                     if item.get("models") is not None:
-                        self.models = item["models"]
+                        if kind == "today_train":
+                            self.today_models = item["models"]
+                        else:
+                            self.models = item["models"]
                     if not self._stopping:
                         state.update(item)
                         if event in ("done", "error"):
@@ -482,7 +805,16 @@ class WorkerManager:
                 await asyncio.to_thread(process.join, 1)
             process.close()
             await asyncio.to_thread(manager.shutdown)
+            elapsed = time.monotonic() - self.job_started if self.job_started else None
+            if kind in ("train", "today_train"):
+                self.last_training_seconds = elapsed
+                if kind == "train" and state.get("state") == "completed":
+                    self.inference_quarantined = False
+            else:
+                self.last_backtest_seconds = elapsed
+            state["elapsed_seconds"] = elapsed
             self.process, self.messages = None, None
+            self.active_kind = None
             if kind == "backtest" and self.on_backtest:
                 try:
                     await self.on_backtest(dict(state))

@@ -2,7 +2,7 @@
 
 FastAPI／Python 3.12+，僅支援三星、四星、五星。每 45 秒檢查台彩官方資料，先封存下一期預測，開獎後結算。網頁使用繁體中文並支援手機。
 
-目前的真實歷史樣本外比較**尚未證明任何模型優於隨機**；投票分數、相對信心與平均命中率都不是下一期中獎機率。詳見 [模型比較](docs/model-comparison.md) 與 [驗收紀錄](docs/acceptance.md)。
+目前的真實歷史樣本外比較**尚未證明任何模型優於隨機**；投票分數、相對信心與平均命中率都不是下一期中獎機率。詳見 [模型比較](docs/model-comparison.md)、[第一階段驗收](docs/acceptance.md) 與 [第二階段驗收及效能](docs/stage2-acceptance.md)。
 
 ## 啟動
 
@@ -55,6 +55,40 @@ python -m uvicorn taiwan_lottery.main:app --host 127.0.0.1 --port 8000
 
 保留原有可重用模型、統計、特徵與離線研究程式；舊 `LSTMModel` 實際已是 Transformer 架構，新執行路徑使用縮小後的真正 Transformer。舊模型研究程式不會寫入新的正式實戰帳本。其他彩種的 API、爬蟲、CRUD、ORM 與介面已移除；歷史遷移保留供既有資料庫升級。
 
+## 三套並行實戰與智慧策略
+
+每一期都先以同一截止時間，原子封存三套策略的三星、四星、五星及完整 80 號分數，再等待官方結果結算：
+
+| 策略 | 資料及工件範圍 |
+|---|---|
+| Today Only | 目標台北日曆日已開期數，獨立當日工件；不借用前一天已訓練權重。未滿 10 期使用明示 Beta(2,6) 先驗，零期為均勻分數。 |
+| Historical | 跨日已知歷史資料；保留原固定視窗及 Shrink 基準。 |
+| Adaptive Hybrid | 融合當日與歷史分數；只根據先前已結算的共同期數收縮調權，少於 30 期維持等權；當日零期時保留歷史訊息。 |
+
+三套的共同實戰排行榜與歷史模擬分開。各星數至少 **300 個共同事前封存期數、涵蓋至少 3 日**，才在每 100 期檢查點評估切換；仍須通過保守配對平均命中／全中率門檻與 100 期冷卻。樣本門檻不是效果保證。未通過時繼續 Historical，不因連敗或相同選號加隨機擾動。
+
+首頁增加可收合「智慧策略監控」：三策略預測／實績、模型視窗與理由、最近 10／30／100／300 期變化、重複率、排名變化、診斷、調整／回退證據、程序 CPU／記憶體及耗時。原四區塊操作保留。
+
+自適應視窗使用 5、10、17、20、30、50、60、100、200、300、500、1000 期及受限鄰近探索；每個模型、星數各自選擇。每輪最多固定基準加兩個候選，30 期選擇後以另外 100 期事前影子紀錄驗證，使用多重比較及重複搜尋校正、最小改善、成本與冷卻限制。訓練視窗與推論特徵視窗分開稽核；縮短特徵視窗不代表重型模型已重新訓練。
+
+回測 API `POST /api/v1/bingo/backtest` 支援 `mode: fixed | adaptive | nested | associations`，預設 API 仍是 `fixed`。`adaptive` 重播真正的逐期視窗控制器；`nested` 使用訓練、30 期選擇、100 期驗證、後續外層及獨立保留區間。候選實際比較視窗、特徵配比、CDM 先驗、訓練頻率及四種投票；沒有通過獨立門檻不會取代正式方案。每期凍結參數和分數後才揭露答案；缺期會拒絕回測，避免把隔期當下一期。
+
+大型完整報告以 gzip 檔案儲存於模型目錄 `reports/`；狀態 API 只傳摘要，介面提供 `GET /api/v1/bingo/backtest/artifact/{run_id}` 下載。`GET /api/v1/bingo/audit/{term}` 可查不可覆寫的截止期、視窗、工件版本與影子紀錄。研究狀態、診斷、待處理結算佇列及策略事件皆持久化，歷史回測無法寫入實戰成績。
+
+## A／B／C 可解釋關聯候選
+
+每期另封存最多九組 A／B／C 三星、四星、五星研究候選，與上述 Today／Historical／Hybrid 是不同維度的研究，不會相互覆寫或自動取代正式策略。
+
+- **A 間隔關聯**：1～20 期的時間延遲條件矩陣；搜尋範圍與視窗受限，沒有可靠關聯時使用可重現的真實平滑探索統計。
+- **B 跨期組合**：雙號條件到後續雙／三號群組，間隔 2～5 期；最多 16 組前因／後果、32 條保留規則，不做無限制序列枚舉。
+- **C 模型交叉參考**：真正融合當折可用八模型分數與其投票權重、目標當日頻率／動能／間隔／共現，以及已獨立確認且當前觸發的 A／B 預測規則。未通過規則貢獻為零。
+
+規則選擇使用所有候選視窗**共用的時間界線**：前半段發現、中間四分之一選擇驗證、最後四分之一獨立確認。短視窗不能借用其他視窗的確認答案。觸發至少 20 次、有限搜尋 Bonferroni 校正、平滑、區間與實際分段統計均封存。跨期單號基準 25%；同一期指定另一號的條件基準 19/79；同時指定群組採無放回組合機率。
+
+解釋完全由真實計數生成，包含歷史範圍、觸發／成功數、條件頻率、平滑 Lift、區間、規則及模型版本。沒有證據即顯示「目前沒有可靠關聯，僅供探索」；相對分數不標為中獎機率。各星數 ABC 獨立實戰榜提供累計、最近 100／300 期結果，歷史比較不灌入實戰。
+
+首頁／分析頁提供可展開證據與完整排名，`GET /api/v1/bingo/associations` 僅讀取既有封存，不在 HTTP 執行規則搜尋。分析頁可選「A／B／C 關聯比較」，使用背景 `mode=associations` 的嚴格 Walk-forward，與相同期數八模型／四投票比較並下載完整 gzip 紀錄。詳見 [關聯引擎驗收](docs/associations-acceptance.md) 與 [真實歷史比較](docs/associations-comparison.md)。
+
 ## 主要設定
 
 | 設定 | 預設 | 用途 |
@@ -62,12 +96,17 @@ python -m uvicorn taiwan_lottery.main:app --host 127.0.0.1 --port 8000
 | `SCRAPER_ENABLED` | `true` | 啟動自動同步 |
 | `SYNC_INTERVAL_SECONDS` | `45` | 每次檢查後的輪詢間隔 |
 | `CPU_THREADS` | `2` | 每個 CPU 工作程序的執行緒上限，另依可用 CPU 限制 |
-| `TRAIN_WINDOW` | `1000` | 近期自適應訓練視窗 |
+| `TRAIN_WINDOW` | `1000` | 正式固定基準／背景批次訓練最多期數 |
 | `HISTORY_MIN_DRAWS` | `100` | 初始訓練最少資料量 |
 | `MAX_BACKFILL_DAYS` | `31` | 自動歷史補抓上限 |
 | `RETRAIN_MIN_DRAWS` | `36` | 觸發重訓的新期數 |
 | `RETRAIN_INTERVAL_SECONDS` | `10800` | 重訓間隔上限 |
-| `AUTO_TRAIN` | `true` | 自動訓練 |
+| `AUTO_TRAIN` | `true` | 自動訓練，無新資料不重複重訓 |
+| `ADAPTIVE_ENABLED` | `true` | 啟用獨立影子視窗比較；三套資料範圍策略仍持續封存 |
+| `ADAPTIVE_SHADOW_BUDGET` | `3` | 固定視窗加候選視窗總數，允許 2～3 |
+| `AUTO_VALIDATE` | `true` | 初次模型就緒及診斷觸發的背景巢狀驗證 |
+| `VALIDATION_COUNT` | `100` | 自動驗證外層期數，100～1000 |
+| `VALIDATION_COOLDOWN_SECONDS` | `86400` | 自動驗證最短間隔 |
 | `MODEL_ARTIFACTS_DIR` | `./model_artifacts` | 模型、版本資訊、線上檢查點 |
 
 重訓和推論有各自的受限程序；短暫重疊時總 CPU 使用量可能高於一個程序的上限。較小主機可設定 `CPU_THREADS=1`。實測八模型訓練約需 400～500 MiB 程序記憶體；總程序記憶體及實際速度依主機與同時工作而異。模型檔僅可使用本機程式產生的檔案，勿匯入不可信 pickle。
@@ -82,6 +121,11 @@ python -m pip install pgserver==0.1.4
 python -m pytest tests/test_postgres_integration.py -q
 # 使用附帶的真實官方資料快照重現完整模型比較
 python -m scripts.validate_real_history --count 1000 --threads 2
+# 第二階段：真實資料的巢狀外層及三策略比較（獨立研究檔案，非實戰）
+python -m scripts.benchmark_adaptation --counts 100 300 1000 --threads 2
+python -m scripts.benchmark_research_strategies --count 1000 --threads 2
+# 純效能比較需先將 PR #1 的 eb7ec1c 建立為獨立 worktree
+python -m scripts.benchmark_bingo --baseline work/stage1-baseline --output work/performance
 ```
 
 測試中的受控資料僅供測試使用，正式資料入口不會生成資料。`docs/validation/` 提供真實官方快照與 100／300／1000 期逐折報告（gzip JSON），可核對每期訓練截止期、特徵截止期、凍結候選與結算結果。

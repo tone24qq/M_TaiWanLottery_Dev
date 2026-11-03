@@ -1,0 +1,869 @@
+{
+  "mode": "parallel_strategies_walk_forward",
+  "is_live": false,
+  "count": 1000,
+  "summary": {
+    "version": "prospective-strategies-v1",
+    "is_live": false,
+    "last_target": "115062176",
+    "observations": 1000,
+    "stars": {
+      "3": {
+        "champion": "historical",
+        "leaderboard": [
+          {
+            "stars": 3,
+            "samples": 1000,
+            "full_hits": 17,
+            "partial_hits": 575,
+            "zero_hits": 408,
+            "mean_hits": 0.754,
+            "average_hits": 0.754,
+            "hit_rate": 0.25133333333333335,
+            "full_hit_rate": 0.017,
+            "full_hit_ci_low": 0.010640689856816463,
+            "full_hit_ci_high": 0.02705595884022959,
+            "ci_low": 0.5912502898880441,
+            "ci_high": 0.9167497101119559,
+            "random_mean": 0.75,
+            "random_full_hit_rate": 0.013875365141187927,
+            "random_variance": 0.5482594936708861,
+            "delta_vs_random": 0.0040000000000000036,
+            "hit_distribution": {
+              "0": 408,
+              "1": 447,
+              "2": 128,
+              "3": 17
+            },
+            "proven_better_than_random": false,
+            "credibility": "可比較",
+            "evidence": "尚未證明優於隨機",
+            "interval_method": "保守 95% 區間：多重比較校正 t 區間與 Hoeffding 界取較寬者；假設各期獨立",
+            "valid": true,
+            "id": "today",
+            "name": "Today Only 當日資料",
+            "updated_at": null
+          },
+          {
+            "stars": 3,
+            "samples": 1000,
+            "full_hits": 12,
+            "partial_hits": 564,
+            "zero_hits": 424,
+            "mean_hits": 0.728,
+            "average_hits": 0.728,
+            "hit_rate": 0.24266666666666667,
+            "full_hit_rate": 0.012,
+            "full_hit_ci_low": 0.006877647806403625,
+            "full_hit_ci_high": 0.020857268475497973,
+            "ci_low": 0.565250289888044,
+            "ci_high": 0.8907497101119559,
+            "random_mean": 0.75,
+            "random_full_hit_rate": 0.013875365141187927,
+            "random_variance": 0.5482594936708861,
+            "delta_vs_random": -0.02200000000000002,
+            "hit_distribution": {
+              "0": 424,
+              "1": 436,
+              "2": 128,
+              "3": 12
+            },
+            "proven_better_than_random": false,
+            "credibility": "可比較",
+            "evidence": "尚未證明優於隨機",
+            "interval_method": "保守 95% 區間：多重比較校正 t 區間與 Hoeffding 界取較寬者；假設各期獨立",
+            "valid": true,
+            "id": "historical",
+            "name": "Historical 跨日歷史",
+            "updated_at": null
+          },
+          {
+            "stars": 3,
+            "samples": 1000,
+            "full_hits": 16,
+            "partial_hits": 549,
+            "zero_hits": 435,
+            "mean_hits": 0.724,
+            "average_hits": 0.724,
+            "hit_rate": 0.24133333333333332,
+            "full_hit_rate": 0.016,
+            "full_hit_ci_low": 0.00987224200227752,
+            "full_hit_ci_high": 0.025832060211739637,
+            "ci_low": 0.561250289888044,
+            "ci_high": 0.8867497101119559,
+            "random_mean": 0.75,
+            "random_full_hit_rate": 0.013875365141187927,
+            "random_variance": 0.5482594936708861,
+            "delta_vs_random": -0.026000000000000023,
+            "hit_distribution": {
+              "0": 435,
+              "1": 422,
+              "2": 127,
+              "3": 16
+            },
+            "proven_better_than_random": false,
+            "credibility": "可比較",
+            "evidence": "尚未證明優於隨機",
+            "interval_method": "保守 95% 區間：多重比較校正 t 區間與 Hoeffding 界取較寬者；假設各期獨立",
+            "valid": true,
+            "id": "hybrid",
+            "name": "Adaptive Hybrid 自適應混合",
+            "updated_at": null
+          }
+        ],
+        "paired_samples": 1000,
+        "days": 6,
+        "minimum_samples": 300,
+        "minimum_days": 3
+      },
+      "4": {
+        "champion": "historical",
+        "leaderboard": [
+          {
+            "stars": 4,
+            "samples": 1000,
+            "full_hits": 4,
+            "partial_hits": 687,
+            "zero_hits": 309,
+            "mean_hits": 0.997,
+            "average_hits": 0.997,
+            "hit_rate": 0.24925,
+            "full_hit_rate": 0.004,
+            "full_hit_ci_low": 0.0015565881404084698,
+            "full_hit_ci_high": 0.010239556277262005,
+            "ci_low": 0.7800003865173921,
+            "ci_high": 1.2139996134826079,
+            "random_mean": 1.0,
+            "random_full_hit_rate": 0.003063392303898633,
+            "random_variance": 0.7215189873417721,
+            "delta_vs_random": -0.0030000000000000027,
+            "hit_distribution": {
+              "0": 309,
+              "1": 438,
+              "2": 204,
+              "3": 45,
+              "4": 4
+            },
+            "proven_better_than_random": false,
+            "credibility": "可比較",
+            "evidence": "尚未證明優於隨機",
+            "interval_method": "保守 95% 區間：多重比較校正 t 區間與 Hoeffding 界取較寬者；假設各期獨立",
+            "valid": true,
+            "id": "historical",
+            "name": "Historical 跨日歷史",
+            "updated_at": null
+          },
+          {
+            "stars": 4,
+            "samples": 1000,
+            "full_hits": 5,
+            "partial_hits": 703,
+            "zero_hits": 292,
+            "mean_hits": 0.996,
+            "average_hits": 0.996,
+            "hit_rate": 0.249,
+            "full_hit_rate": 0.005,
+            "full_hit_ci_low": 0.0021375355273245064,
+            "full_hit_ci_high": 0.011650955373374858,
+            "ci_low": 0.779000386517392,
+            "ci_high": 1.212999613482608,
+            "random_mean": 1.0,
+            "random_full_hit_rate": 0.003063392303898633,
+            "random_variance": 0.7215189873417721,
+            "delta_vs_random": -0.0040000000000000036,
+            "hit_distribution": {
+              "0": 292,
+              "1": 467,
+              "2": 199,
+              "3": 37,
+              "4": 5
+            },
+            "proven_better_than_random": false,
+            "credibility": "可比較",
+            "evidence": "尚未證明優於隨機",
+            "interval_method": "保守 95% 區間：多重比較校正 t 區間與 Hoeffding 界取較寬者；假設各期獨立",
+            "valid": true,
+            "id": "today",
+            "name": "Today Only 當日資料",
+            "updated_at": null
+          },
+          {
+            "stars": 4,
+            "samples": 1000,
+            "full_hits": 4,
+            "partial_hits": 678,
+            "zero_hits": 318,
+            "mean_hits": 0.965,
+            "average_hits": 0.965,
+            "hit_rate": 0.24125,
+            "full_hit_rate": 0.004,
+            "full_hit_ci_low": 0.0015565881404084698,
+            "full_hit_ci_high": 0.010239556277262005,
+            "ci_low": 0.7480003865173921,
+            "ci_high": 1.1819996134826078,
+            "random_mean": 1.0,
+            "random_full_hit_rate": 0.003063392303898633,
+            "random_variance": 0.7215189873417721,
+            "delta_vs_random": -0.03500000000000003,
+            "hit_distribution": {
+              "0": 318,
+              "1": 457,
+              "2": 171,
+              "3": 50,
+              "4": 4
+            },
+            "proven_better_than_random": false,
+            "credibility": "可比較",
+            "evidence": "尚未證明優於隨機",
+            "interval_method": "保守 95% 區間：多重比較校正 t 區間與 Hoeffding 界取較寬者；假設各期獨立",
+            "valid": true,
+            "id": "hybrid",
+            "name": "Adaptive Hybrid 自適應混合",
+            "updated_at": null
+          }
+        ],
+        "paired_samples": 1000,
+        "days": 6,
+        "minimum_samples": 300,
+        "minimum_days": 3
+      },
+      "5": {
+        "champion": "historical",
+        "leaderboard": [
+          {
+            "stars": 5,
+            "samples": 1000,
+            "full_hits": 0,
+            "partial_hits": 781,
+            "zero_hits": 219,
+            "mean_hits": 1.273,
+            "average_hits": 1.273,
+            "hit_rate": 0.2546,
+            "full_hit_rate": 0.0,
+            "full_hit_ci_low": 0.0,
+            "full_hit_ci_high": 0.0038267584855549135,
+            "ci_low": 1.0017504831467399,
+            "ci_high": 1.54424951685326,
+            "random_mean": 1.25,
+            "random_full_hit_rate": 0.0006449246955576069,
+            "random_variance": 0.8900316455696202,
+            "delta_vs_random": 0.02299999999999991,
+            "hit_distribution": {
+              "0": 219,
+              "1": 409,
+              "2": 261,
+              "3": 102,
+              "4": 9,
+              "5": 0
+            },
+            "proven_better_than_random": false,
+            "credibility": "可比較",
+            "evidence": "尚未證明優於隨機",
+            "interval_method": "保守 95% 區間：多重比較校正 t 區間與 Hoeffding 界取較寬者；假設各期獨立",
+            "valid": true,
+            "id": "historical",
+            "name": "Historical 跨日歷史",
+            "updated_at": null
+          },
+          {
+            "stars": 5,
+            "samples": 1000,
+            "full_hits": 1,
+            "partial_hits": 785,
+            "zero_hits": 214,
+            "mean_hits": 1.246,
+            "average_hits": 1.246,
+            "hit_rate": 0.2492,
+            "full_hit_rate": 0.001,
+            "full_hit_ci_low": 0.0001765463706260846,
+            "full_hit_ci_high": 0.005642558597957719,
+            "ci_low": 0.9747504831467401,
+            "ci_high": 1.5172495168532598,
+            "random_mean": 1.25,
+            "random_full_hit_rate": 0.0006449246955576069,
+            "random_variance": 0.8900316455696202,
+            "delta_vs_random": -0.0040000000000000036,
+            "hit_distribution": {
+              "0": 214,
+              "1": 437,
+              "2": 254,
+              "3": 80,
+              "4": 14,
+              "5": 1
+            },
+            "proven_better_than_random": false,
+            "credibility": "可比較",
+            "evidence": "尚未證明優於隨機",
+            "interval_method": "保守 95% 區間：多重比較校正 t 區間與 Hoeffding 界取較寬者；假設各期獨立",
+            "valid": true,
+            "id": "today",
+            "name": "Today Only 當日資料",
+            "updated_at": null
+          },
+          {
+            "stars": 5,
+            "samples": 1000,
+            "full_hits": 1,
+            "partial_hits": 767,
+            "zero_hits": 232,
+            "mean_hits": 1.244,
+            "average_hits": 1.244,
+            "hit_rate": 0.2488,
+            "full_hit_rate": 0.001,
+            "full_hit_ci_low": 0.0001765463706260846,
+            "full_hit_ci_high": 0.005642558597957719,
+            "ci_low": 0.9727504831467401,
+            "ci_high": 1.51524951685326,
+            "random_mean": 1.25,
+            "random_full_hit_rate": 0.0006449246955576069,
+            "random_variance": 0.8900316455696202,
+            "delta_vs_random": -0.006000000000000005,
+            "hit_distribution": {
+              "0": 232,
+              "1": 412,
+              "2": 252,
+              "3": 89,
+              "4": 14,
+              "5": 1
+            },
+            "proven_better_than_random": false,
+            "credibility": "可比較",
+            "evidence": "尚未證明優於隨機",
+            "interval_method": "保守 95% 區間：多重比較校正 t 區間與 Hoeffding 界取較寬者；假設各期獨立",
+            "valid": true,
+            "id": "hybrid",
+            "name": "Adaptive Hybrid 自適應混合",
+            "updated_at": null
+          }
+        ],
+        "paired_samples": 1000,
+        "days": 6,
+        "minimum_samples": 300,
+        "minimum_days": 3
+      }
+    },
+    "events": [
+      {
+        "kind": "research_strategy_retained",
+        "stars": 3,
+        "target_term": "115061776",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 600,
+          "days": 4,
+          "mean_delta": 0.0016666666666666668,
+          "ci_low": -0.5928900900627535,
+          "full_hit_delta": 0.008333333333333333,
+          "full_hit_ci_low": -0.18985225224314006,
+          "alpha": 1.5262515262515263e-05
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 3,
+        "target_term": "115061776",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 600,
+          "days": 4,
+          "mean_delta": -0.023333333333333334,
+          "ci_low": -0.6214894687042137,
+          "full_hit_delta": 0.005,
+          "full_hit_ci_low": -0.19438537845696013,
+          "alpha": 1.3227513227513228e-05
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 4,
+        "target_term": "115061776",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 600,
+          "days": 4,
+          "mean_delta": -0.03,
+          "ci_low": -0.831993853188484,
+          "full_hit_delta": 0.0,
+          "full_hit_ci_low": -0.20049846329712098,
+          "alpha": 1.1574074074074075e-05
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 4,
+        "target_term": "115061776",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 600,
+          "days": 4,
+          "mean_delta": -0.055,
+          "ci_low": -0.8611448431741813,
+          "full_hit_delta": 0.0,
+          "full_hit_ci_low": -0.2015362107935453,
+          "alpha": 1.0212418300653596e-05
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 5,
+        "target_term": "115061776",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 600,
+          "days": 4,
+          "mean_delta": -0.05,
+          "ci_low": -1.062539559472554,
+          "full_hit_delta": 0.0016666666666666668,
+          "full_hit_ci_low": -0.2008412452278441,
+          "alpha": 9.077705156136529e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 5,
+        "target_term": "115061776",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 600,
+          "days": 4,
+          "mean_delta": -0.03666666666666667,
+          "ci_low": -1.053772935658617,
+          "full_hit_delta": 0.0016666666666666668,
+          "full_hit_ci_low": -0.2017545871317234,
+          "alpha": 8.122157244964263e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 3,
+        "target_term": "115061876",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 700,
+          "days": 4,
+          "mean_delta": 0.02,
+          "ci_low": -0.5473869986490068,
+          "full_hit_delta": 0.007142857142857143,
+          "full_hit_ci_low": -0.18198614240681177,
+          "alpha": 7.3099415204678366e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 3,
+        "target_term": "115061876",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 700,
+          "days": 4,
+          "mean_delta": -0.008571428571428572,
+          "ci_low": -0.578221830910035,
+          "full_hit_delta": 0.002857142857142857,
+          "full_hit_ci_low": -0.18702632458905927,
+          "alpha": 6.613756613756614e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 4,
+        "target_term": "115061876",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 700,
+          "days": 4,
+          "mean_delta": -0.014285714285714285,
+          "ci_low": -0.7766824195129478,
+          "full_hit_delta": 0.002857142857142857,
+          "full_hit_ci_low": -0.18774203344966553,
+          "alpha": 6.012506012506013e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 4,
+        "target_term": "115061876",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 700,
+          "days": 4,
+          "mean_delta": -0.03142857142857143,
+          "ci_low": -0.7965478078892518,
+          "full_hit_delta": 0.0,
+          "full_hit_ci_low": -0.1912798091151701,
+          "alpha": 5.489679402722881e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 5,
+        "target_term": "115061876",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 700,
+          "days": 4,
+          "mean_delta": -0.037142857142857144,
+          "ci_low": -0.9967856202244112,
+          "full_hit_delta": 0.0014285714285714286,
+          "full_hit_ci_low": -0.1904999811877394,
+          "alpha": 5.032206119162641e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 5,
+        "target_term": "115061876",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 700,
+          "days": 4,
+          "mean_delta": -0.027142857142857142,
+          "ci_low": -0.98988376826315,
+          "full_hit_delta": 0.0014285714285714286,
+          "full_hit_ci_low": -0.19111961079548717,
+          "alpha": 4.6296296296296296e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 3,
+        "target_term": "115061976",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 800,
+          "days": 5,
+          "mean_delta": 0.0275,
+          "ci_low": -0.514500950585186,
+          "full_hit_delta": 0.00625,
+          "full_hit_ci_low": -0.1744169835283953,
+          "alpha": 4.273504273504274e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 3,
+        "target_term": "115061976",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 800,
+          "days": 5,
+          "mean_delta": -0.0175,
+          "ci_low": -0.5610960392247243,
+          "full_hit_delta": 0.00125,
+          "full_hit_ci_low": -0.17994867974157477,
+          "alpha": 3.956948401392846e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 4,
+        "target_term": "115061976",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 800,
+          "days": 5,
+          "mean_delta": -0.00375,
+          "ci_low": -0.7305867791516781,
+          "full_hit_delta": 0.0025,
+          "full_hit_ci_low": -0.17920919478791952,
+          "alpha": 3.6743092298647855e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 4,
+        "target_term": "115061976",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 800,
+          "days": 5,
+          "mean_delta": -0.0375,
+          "ci_low": -0.7663004267883431,
+          "full_hit_delta": 0.0,
+          "full_hit_ci_low": -0.18220010669708578,
+          "alpha": 3.4209085933223865e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 5,
+        "target_term": "115061976",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 800,
+          "days": 5,
+          "mean_delta": -0.025,
+          "ci_low": -0.9383641258986859,
+          "full_hit_delta": 0.00125,
+          "full_hit_ci_low": -0.18142282517973718,
+          "alpha": 3.1928480204342275e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 5,
+        "target_term": "115061976",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 800,
+          "days": 5,
+          "mean_delta": -0.035,
+          "ci_low": -0.9506430731375833,
+          "full_hit_delta": 0.00125,
+          "full_hit_ci_low": -0.18187861462751667,
+          "alpha": 2.986857825567503e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 3,
+        "target_term": "115062076",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 900,
+          "days": 5,
+          "mean_delta": 0.04111111111111111,
+          "ci_low": -0.4780993340707048,
+          "full_hit_delta": 0.006666666666666667,
+          "full_hit_ci_low": -0.16640348172727198,
+          "alpha": 2.800179211469534e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 3,
+        "target_term": "115062076",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 900,
+          "days": 5,
+          "mean_delta": 0.0,
+          "ci_low": -0.5204131949955979,
+          "full_hit_delta": 0.0022222222222222222,
+          "full_hit_ci_low": -0.17124884277631042,
+          "alpha": 2.6304713804713806e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 4,
+        "target_term": "115062076",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 900,
+          "days": 5,
+          "mean_delta": 0.005555555555555556,
+          "ci_low": -0.6898802131367305,
+          "full_hit_delta": 0.0022222222222222222,
+          "full_hit_ci_low": -0.1716367199508493,
+          "alpha": 2.475737769855417e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 4,
+        "target_term": "115062076",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 900,
+          "days": 5,
+          "mean_delta": -0.025555555555555557,
+          "ci_low": -0.7224938706481561,
+          "full_hit_delta": 0.0011111111111111111,
+          "full_hit_ci_low": -0.173123467662039,
+          "alpha": 2.334267040149393e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 5,
+        "target_term": "115062076",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 900,
+          "days": 5,
+          "mean_delta": -0.01888888888888889,
+          "ci_low": -0.891882404581863,
+          "full_hit_delta": 0.0011111111111111111,
+          "full_hit_ci_low": -0.1734875920274837,
+          "alpha": 2.2045855379188715e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 5,
+        "target_term": "115062076",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 900,
+          "days": 5,
+          "mean_delta": -0.02,
+          "ci_low": -0.8947599055712512,
+          "full_hit_delta": 0.0011111111111111111,
+          "full_hit_ci_low": -0.1738408700031391,
+          "alpha": 2.085418752085419e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 3,
+        "target_term": "115062176",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 1000,
+          "days": 6,
+          "mean_delta": 0.026,
+          "ci_low": -0.4728983815556559,
+          "full_hit_delta": 0.005,
+          "full_hit_ci_low": -0.16129946051855196,
+          "alpha": 1.9756598703967124e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 3,
+        "target_term": "115062176",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 1000,
+          "days": 6,
+          "mean_delta": -0.004,
+          "ci_low": -0.5038471589612072,
+          "full_hit_delta": 0.004,
+          "full_hit_ci_low": -0.16261571965373575,
+          "alpha": 1.8743439796071375e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 4,
+        "target_term": "115062176",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 1000,
+          "days": 6,
+          "mean_delta": -0.001,
+          "ci_low": -0.6686931585632115,
+          "full_hit_delta": 0.001,
+          "full_hit_ci_low": -0.16592328964080288,
+          "alpha": 1.7806267806267808e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 4,
+        "target_term": "115062176",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 1000,
+          "days": 6,
+          "mean_delta": -0.032,
+          "ci_low": -0.700890489878954,
+          "full_hit_delta": 0.0,
+          "full_hit_ci_low": -0.16722262246973849,
+          "alpha": 1.6937669376693767e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 5,
+        "target_term": "115062176",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 1000,
+          "days": 6,
+          "mean_delta": -0.027,
+          "ci_low": -0.864570680509943,
+          "full_hit_delta": 0.001,
+          "full_hit_ci_low": -0.1665141361019886,
+          "alpha": 1.6131113692089303e-06
+        }
+      },
+      {
+        "kind": "research_strategy_retained",
+        "stars": 5,
+        "target_term": "115062176",
+        "before": "historical",
+        "after": "historical",
+        "reason": "數百期比較仍未通過平均命中／全中率保守門檻，維持原正式策略",
+        "validation": {
+          "samples": 1000,
+          "days": 6,
+          "mean_delta": -0.029,
+          "ci_low": -0.8679910889272613,
+          "full_hit_delta": 0.001,
+          "full_hit_ci_low": -0.16679821778545226,
+          "alpha": 1.5380829334317708e-06
+        }
+      }
+    ],
+    "reason": "三策略同一期事前封存並分開結算；至少數百期、多日比較後才評估正式切換"
+  },
+  "resource": {
+    "wall_seconds": 23.021747410999524,
+    "cpu_seconds": 34.586551385,
+    "peak_rss_mib": 810.69921875,
+    "today_refits": 35,
+    "threads": 2
+  },
+  "historical_source": "work/stage2/adaptive/nested-walk-forward-1000.json.gz",
+  "scope": "Today模型只看目標當天較早期數；Historical重用已凍結的嚴格逐期工件結果；Hybrid只用先前已結算配對實績",
+  "artifact_bytes": 14363177
+}

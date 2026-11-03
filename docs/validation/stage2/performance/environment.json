@@ -1,0 +1,22 @@
+{
+  "baseline_commit": "eb7ec1c2d11c7602eb2cef285928a2bf1dfe446b",
+  "optimized_commit": "2e6cc2e",
+  "python": "3.12.14",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "threads_per_worker": 2,
+  "visible_cpu_count": 3,
+  "source_archive_sha256": "a30c1951e06fa65a8c02c054e8b14d3cfcf7e1fa1e4aee5db79b1d4225058617",
+  "methodology": "Fresh sequential worker processes; exact same official snapshot, seeds and serialized stage1 model artifact. Size10000 feature fixture only is synthetic and excluded from accuracy comparisons. CPU% is summed process CPU time / elapsed, so may approach200% under two threads. Unchanged training construction is measured without promising a gain.",
+  "packages": {
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "torch": "2.15.0+cpu",
+    "lightgbm": "4.7.0",
+    "catboost": "1.2.10",
+    "river": "0.23.0",
+    "threadpoolctl": "3.7.0"
+  },
+  "cpu.max": "200000 100000",
+  "memory.max": "8589934592",
+  "shared_model_artifact_sha256": "3f8e42728802f5608fdbb7ab4f36cf52bfcd1b941575333f9bcd0969222d350d"
+}

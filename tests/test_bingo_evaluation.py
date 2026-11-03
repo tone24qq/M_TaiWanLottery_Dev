@@ -300,3 +300,20 @@ def test_consecutive_terms_with_inconsistent_clock_are_not_a_valid_streak():
     ]
     assert live_rankings(rows)["3"]["cumulative"][0]["samples"] == 2
     assert live_rankings(rows)["3"]["consecutive"][0]["samples"] == 1
+
+
+def test_missing_term_is_not_reinterpreted_as_the_next_draw():
+    from taiwan_lottery.ml.bingo_evaluation import walk_forward
+    from datetime import datetime, timedelta
+
+    data = [
+        dict(
+            draw_term=str(115000001 + i),
+            draw_datetime=datetime(2026, 1, 1, 7, 5) + timedelta(minutes=5 * i),
+            numbers=list(range(1, 21)),
+        )
+        for i in range(220)
+    ]
+    del data[140]
+    with pytest.raises(ValueError, match="期號有缺漏"):
+        walk_forward(data, count=100, model_names=["frequency", "cdm"])

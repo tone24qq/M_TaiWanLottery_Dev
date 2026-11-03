@@ -1,0 +1,223 @@
+{
+  "fixture_only": false,
+  "version": "bingo-associations-2",
+  "source_term": "115062234",
+  "target_term": "115062235",
+  "sealed_at": "2026-11-03T16:42:29.616560+08:00",
+  "candidate_count": 9,
+  "candidate_records": [
+    {
+      "star": "3",
+      "candidate": "A",
+      "numbers": [
+        6,
+        3,
+        16
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 3,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "3",
+      "candidate": "B",
+      "numbers": [
+        6,
+        39,
+        21
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 2,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "3",
+      "candidate": "C",
+      "numbers": [
+        6,
+        3,
+        63
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 0,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "4",
+      "candidate": "A",
+      "numbers": [
+        6,
+        3,
+        16,
+        32
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 3,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "4",
+      "candidate": "B",
+      "numbers": [
+        6,
+        39,
+        21,
+        41
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 2,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "4",
+      "candidate": "C",
+      "numbers": [
+        6,
+        3,
+        63,
+        20
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 0,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "5",
+      "candidate": "A",
+      "numbers": [
+        6,
+        3,
+        16,
+        32,
+        48
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 3,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "5",
+      "candidate": "B",
+      "numbers": [
+        6,
+        39,
+        21,
+        41,
+        1
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 2,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "5",
+      "candidate": "C",
+      "numbers": [
+        6,
+        3,
+        63,
+        20,
+        33
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 0,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    }
+  ],
+  "pages": [
+    "/",
+    "/analysis/bingo"
+  ],
+  "widths": [
+    1440,
+    390,
+    320
+  ],
+  "pageerrors": [],
+  "request_failures": [],
+  "findings": [],
+  "write_requests": [],
+  "checks": [
+    "all9candidatesmatchactualAPIorder",
+    "3/4/5numbersvalid",
+    "full80scores/rankings",
+    "fullactualrulecountsandstageswhereavailable",
+    "originalintelligencetabsunchanged",
+    "ABCseparatecumulative/recent100/recent300boards",
+    "1440/390/320bothpagesnooverflow",
+    "noJSerrors",
+    "read-only"
+  ]
+}

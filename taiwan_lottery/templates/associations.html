@@ -1,0 +1,43 @@
+<section class="panel associations-panel" aria-labelledby="associations-title">
+  <details id="associations-details" {% if associations_expanded %}open{% endif %}>
+    <summary class="associations-summary">
+      <div>
+        <p class="eyebrow">06 / 關聯研究</p>
+        <h2 id="associations-title">A／B／C 關聯候選</h2>
+        <p id="association-summary" class="small subtle">讀取事前封存的關聯候選與規則證據</p>
+      </div>
+      <span id="association-state" class="badge neutral" role="status">等待資料</span>
+    </summary>
+    <div class="associations-content">
+      <p class="report-note">歷史條件頻率與相對關聯分數不是下一期中獎機率。A／B／C 分開封存、事後結算，實績不混入原有模型排行榜。</p>
+      <p id="association-error" class="error-detail" role="status" hidden></p>
+      <div class="association-toolbar">
+        <div class="segmented" role="group" aria-label="關聯候選星數">
+          <button class="active" data-association-star="3" aria-pressed="true">三星</button>
+          <button data-association-star="4" aria-pressed="false">四星</button>
+          <button data-association-star="5" aria-pressed="false">五星</button>
+        </div>
+        <span id="association-sealed" class="small subtle">尚無封存時間</span>
+      </div>
+      <div id="association-cards" class="association-cards"><p class="empty">尚無可用的 A／B／C 關聯候選</p></div>
+      <details class="association-records">
+        <summary>關聯候選獨立實戰榜</summary>
+        <div class="association-toolbar">
+          <div class="segmented" role="group" aria-label="關聯候選實戰期間">
+            <button class="active" data-association-board="cumulative" aria-pressed="true">累計實戰</button>
+            <button data-association-board="recent100" aria-pressed="false">最近 100 期</button>
+            <button data-association-board="recent300" aria-pressed="false">最近 300 期</button>
+          </div>
+        </div>
+        <p class="small subtle">只計入開獎前封存且已結算的 A／B／C 候選。樣本少或區間未高於隨機基準時，不宣稱優勢。</p>
+        <div class="table-scroll association-board-scroll">
+          <table class="association-board-table">
+            <caption class="sr-only">關聯候選獨立實戰成績</caption>
+            <thead><tr><th scope="col">候選</th><th scope="col">期數</th><th scope="col">平均命中與區間</th><th scope="col">全中次數／率</th><th scope="col">部分命中</th><th scope="col">與隨機差距</th></tr></thead>
+            <tbody id="association-leaderboard"><tr><td colspan="6" class="empty">尚無已結算關聯實戰</td></tr></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  </details>
+</section>

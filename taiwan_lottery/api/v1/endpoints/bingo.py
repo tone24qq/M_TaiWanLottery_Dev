@@ -1,6 +1,10 @@
 """Bingo-only API. All CPU work runs in bounded worker processes."""
 
 from datetime import date
+from pathlib import Path
+import re
+from fastapi.responses import FileResponse
+from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +20,7 @@ def runtime(request: Request):
 
 
 class BacktestRequest(BaseModel):
+    mode: Literal["fixed", "adaptive", "nested", "associations"] = "fixed"
     count: int = Field(100, ge=1, le=10000)
     start_term: str | None = Field(None, pattern=r"^\d{1,20}$")
     end_term: str | None = Field(None, pattern=r"^\d{1,20}$")
@@ -34,6 +39,23 @@ class BacktestRequest(BaseModel):
 @router.get("/status")
 async def status(request: Request):
     return runtime(request).status()
+
+
+@router.get("/intelligence")
+async def intelligence(request: Request):
+    return runtime(request).intelligence()
+
+
+@router.get("/associations")
+async def associations(request: Request):
+    return runtime(request).associations()
+
+
+@router.get("/audit/{term}")
+async def forecast_audit(term: str, request: Request):
+    if not term.isdigit():
+        raise HTTPException(422, "期號格式無效")
+    return await runtime(request).store.forecast_audit(term)
 
 
 @router.post("/predict")
@@ -76,7 +98,10 @@ async def analysis(request: Request):
 @router.post("/backtest")
 async def backtest(body: BacktestRequest, request: Request):
     try:
-        return await runtime(request).start_backtest(body.model_dump(exclude_none=True))
+        options = body.model_dump(exclude_none=True)
+        if options["mode"] == "fixed":
+            options.pop("mode")
+        return await runtime(request).start_backtest(options)
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
 
@@ -90,6 +115,20 @@ async def backtest_status(request: Request, summary: bool = False):
             "has_report": bool(state.get("report")),
         }
     return state
+
+
+@router.get("/backtest/artifact/{run_id}")
+async def backtest_artifact(run_id: str, request: Request):
+    if not re.fullmatch(r"[a-f0-9]{32}", run_id):
+        raise HTTPException(404, "報告不存在")
+    path = Path(runtime(request).workers.directory) / "reports" / (run_id + ".json.gz")
+    if not path.is_file():
+        raise HTTPException(404, "報告檔案不存在或尚未完成")
+    return FileResponse(
+        path,
+        media_type="application/gzip",
+        filename="bingo-walk-forward-" + run_id + ".json.gz",
+    )
 
 
 @router.get("/latest", response_model=BingoDrawSchema)
