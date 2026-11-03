@@ -2,34 +2,11 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from taiwan_lottery.db.crud import lotto649, super_lotto, daily_cash, bingo
+from taiwan_lottery.db.crud import bingo
 
 # Maps game_type -> (crud_module, number_extractor, max_num, pick_count)
 GAME_CONFIG = {
-    "lotto649": {
-        "crud": lotto649,
-        "extract": lambda d: d.numbers_sorted,
-        "max_num": 49,
-        "pick_count": 6,
-    },
-    "super_lotto": {
-        "crud": super_lotto,
-        "extract": lambda d: d.zone1_sorted,
-        "max_num": 38,
-        "pick_count": 6,
-    },
-    "daily_cash": {
-        "crud": daily_cash,
-        "extract": lambda d: d.numbers_sorted,
-        "max_num": 39,
-        "pick_count": 5,
-    },
-    "bingo": {
-        "crud": bingo,
-        "extract": lambda d: d.numbers,
-        "max_num": 80,
-        "pick_count": 20,
-    },
+    "bingo": {"crud": bingo, "extract": lambda d: d.numbers, "max_num": 80, "pick_count": 20},
 }
 
 

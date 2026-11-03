@@ -1,33 +1,23 @@
-# Web framework
-fastapi>=0.115.0
-uvicorn[standard]>=0.30.0
-jinja2>=3.1.0
-python-multipart>=0.0.9
-
-# Database
-sqlalchemy[asyncio]>=2.0.30
-asyncpg>=0.29.0
-alembic>=1.13.0
-psycopg2-binary>=2.9.9
-
-# Scraping
-taiwanlottery>=0.3.0
-aiohttp>=3.9.0
-beautifulsoup4>=4.12.0
-lxml>=5.1.0
-
-# Scheduling
-apscheduler>=3.10.0
-
-# ML / Data Science
-torch>=2.2.0
-numpy>=1.26.0
-pandas>=2.1.0
-scikit-learn>=1.4.0
-scipy>=1.12.0
-
-# Config & Utilities
-pydantic-settings>=2.5.0
-python-dotenv>=1.0.0
-loguru>=0.7.0
-httpx>=0.27.0
+# Python 3.12+, CPU runtime
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+jinja2>=3.1,<4
+sqlalchemy[asyncio]>=2.0.30,<3
+asyncpg>=0.29,<1
+alembic>=1.13,<2
+psycopg2-binary>=2.9.9,<3
+aiosqlite>=0.20,<1
+httpx>=0.27,<1
+numpy>=1.26,<3
+pandas>=2.1,<3
+scikit-learn>=1.4,<2
+scipy>=1.12,<2
+pydantic-settings>=2.5,<3
+python-dotenv>=1,<2
+loguru>=0.7,<1
+threadpoolctl>=3.5,<4
+river>=0.22,<0.24
+lightgbm>=4.5,<5
+catboost>=1.2.7,<2
+# For CPU-only installation use the official PyTorch CPU wheel index first.
+torch>=2.2,<3

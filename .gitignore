@@ -41,3 +41,8 @@ nul
 # Database
 *.db
 *.sqlite3
+
+work/
+.pytest_cache/
+model_artifacts/
+*.sqlite

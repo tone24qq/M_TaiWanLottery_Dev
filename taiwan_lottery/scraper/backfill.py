@@ -5,25 +5,11 @@ from datetime import datetime
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from taiwan_lottery.scraper.parsers.lotto649_parser import Lotto649Scraper
-from taiwan_lottery.scraper.parsers.super_lotto_parser import SuperLottoScraper
-from taiwan_lottery.scraper.parsers.daily_cash_parser import DailyCashScraper
 from taiwan_lottery.scraper.parsers.bingo_parser import BingoScraper
+from taiwan_lottery.bingo_clock import now_taipei
+SCRAPERS = {"bingo": BingoScraper()}
+GAME_START_YEAR = {"bingo": 103}
 
-SCRAPERS = {
-    "lotto649": Lotto649Scraper(),
-    "super_lotto": SuperLottoScraper(),
-    "daily_cash": DailyCashScraper(),
-    "bingo": BingoScraper(),
-}
-
-# Game start years (ROC year)
-GAME_START_YEAR = {
-    "lotto649": 93,      # 2004
-    "super_lotto": 97,   # 2008
-    "daily_cash": 96,    # 2007
-    "bingo": 103,        # 2014
-}
 
 
 async def backfill_game(
@@ -36,7 +22,7 @@ async def backfill_game(
 
     Args:
         session: Database session
-        game_type: One of lotto649, super_lotto, daily_cash, bingo
+        game_type: Only bingo
         year_start: ROC year to start from (default: game start year)
         year_end: ROC year to end at (default: current ROC year)
 
@@ -50,7 +36,7 @@ async def backfill_game(
     if year_start is None:
         year_start = GAME_START_YEAR.get(game_type, 93)
     if year_end is None:
-        year_end = datetime.now().year - 1911
+        year_end = now_taipei().year - 1911
 
     logger.info(
         "Backfilling {} from ROC {} to {}",
@@ -63,7 +49,7 @@ async def backfill_game(
     for year in range(year_start, year_end + 1):
         for month in range(1, 13):
             # Skip future months
-            now = datetime.now()
+            now = now_taipei()
             if year + 1911 > now.year or (year + 1911 == now.year and month > now.month):
                 continue
 

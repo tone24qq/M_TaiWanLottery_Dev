@@ -1,0 +1,24 @@
+{
+  "python": "3.12.14",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "packages": {
+    "fastapi": "0.115.14",
+    "sqlalchemy": "2.1.6",
+    "asyncpg": "0.32.0",
+    "aiosqlite": "0.22.1",
+    "numpy": "2.5.4",
+    "pandas": "2.3.3",
+    "scipy": "1.18.1",
+    "torch": "2.15.0+cpu",
+    "river": "0.23.0",
+    "lightgbm": "4.7.0",
+    "catboost": "1.2.10",
+    "pytest": "9.2.0",
+    "pytest-asyncio": "1.4.1.post1",
+    "pgserver": "0.1.4",
+    "httpx": "0.28.1",
+    "uvicorn": "0.54.0",
+    "pydantic-settings": "2.16.2",
+    "threadpoolctl": "3.7.0"
+  }
+}

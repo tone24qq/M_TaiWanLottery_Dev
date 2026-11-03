@@ -4,23 +4,14 @@ from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from taiwan_lottery.db.crud import lotto649, super_lotto, daily_cash, bingo
-from taiwan_lottery.scraper.parsers.lotto649_parser import Lotto649Scraper
-from taiwan_lottery.scraper.parsers.super_lotto_parser import SuperLottoScraper
-from taiwan_lottery.scraper.parsers.daily_cash_parser import DailyCashScraper
+from taiwan_lottery.db.crud import bingo
 from taiwan_lottery.scraper.parsers.bingo_parser import BingoScraper
 
 GAME_CRUD = {
-    "lotto649": lotto649,
-    "super_lotto": super_lotto,
-    "daily_cash": daily_cash,
     "bingo": bingo,
 }
 
 GAME_SCRAPERS = {
-    "lotto649": Lotto649Scraper,
-    "super_lotto": SuperLottoScraper,
-    "daily_cash": DailyCashScraper,
     "bingo": BingoScraper,
 }
 

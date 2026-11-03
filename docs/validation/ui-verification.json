@@ -1,0 +1,44 @@
+{
+  "browser": "system /usr/bin/chromium via Playwright",
+  "fixture_only": true,
+  "desktop_width": 1440,
+  "mobile_widths": [
+    390,
+    320
+  ],
+  "checks": [
+    "20 draw numbers",
+    "3/4/5 separate cards",
+    "real numeric progress rendering",
+    "training controls",
+    "rank tabs",
+    "analysis80ranking",
+    "report tables/download",
+    "custom range validation",
+    "empty states",
+    "XSS text-only rendering",
+    "poll failure/recovery",
+    "no page overflow",
+    "no JS pageerror"
+  ],
+  "findings": [],
+  "errors": [],
+  "status_requests": 5,
+  "posts": [
+    {
+      "path": "/api/v1/bingo/backtest",
+      "body": "{\"count\":100,\"start_term\":\"100\",\"end_term\":\"200\"}"
+    }
+  ],
+  "summary_requests": 9,
+  "full_report_requests": 2,
+  "analysis_requests": 5,
+  "completed_report_bytes": 2007984,
+  "first_run_requests": {
+    "summary": 6,
+    "full_report": 1,
+    "analysis": 2
+  },
+  "new_run_blob_refreshed": true,
+  "polling_note": "Each run full report fetched once across repeated summary polling; second run identical aggregate metrics distinct fold predictions refreshes download Blob; analysis updates at most once per30s."
+}
