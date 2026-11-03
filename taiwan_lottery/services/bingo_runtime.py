@@ -21,6 +21,7 @@ from taiwan_lottery.config import settings
 from taiwan_lottery.db.crud.bingo_research import ResearchStore
 from taiwan_lottery.ml.bingo_evaluation import (
     fuse,
+    fuse_many,
     live_rankings,
     live_rankings_summary,
     normalize_scores,
@@ -295,6 +296,7 @@ class BingoRuntime:
             raise ValueError("無可用模型評分，尚未封存")
         method = self.strategy["method"]
         forecasts, by_star = [], {}
+        fusions = fuse_many(score_map, self.outcomes)
         for stars in (3, 4, 5):
             for name, vector in score_map.items():
                 ranking = sorted(range(1, 81), key=lambda n: (-vector[n - 1], n))
@@ -310,7 +312,7 @@ class BingoRuntime:
                 )
             selected = None
             for voting in ("equal", "shrink", "borda", "majority"):
-                fused = fuse(score_map, voting, stars, self.outcomes)
+                fused = fusions[str(stars)][voting]
                 forecasts.append(
                     dict(
                         model=voting,

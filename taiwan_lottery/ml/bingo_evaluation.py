@@ -57,65 +57,99 @@ def _performance_summary(performance, stars: int):
     return summaries
 
 
+class FusionScores:
+    """Normalize, rank and count model support once for all four methods.
+
+    A snapshot is reused across star counts. No persistent cache is keyed merely
+    by term or model name, so a new score matrix always receives a fresh result.
+    """
+
+    def __init__(self, scores: dict):
+        valid, self.excluded = {}, {}
+        for name, vector in scores.items():
+            try:
+                valid[name] = normalize_scores(vector)
+            except (TypeError, ValueError) as exc:
+                self.excluded[name] = str(exc)
+        if not valid:
+            raise ValueError("目前沒有可用的完整模型分數")
+        self.names = sorted(valid)
+        self.matrix = np.asarray([valid[name] for name in self.names])
+        # Stable ascending number order is precisely _rank's tie rule.
+        self.order = np.argsort(-self.matrix, axis=1, kind="stable")
+        self.borda = None
+        self.support = {}
+
+    def calculate(self, method="shrink", stars=3, performance=None, summary=None):
+        if stars not in STARS or method not in METHODS:
+            raise ValueError("僅支援三星、四星、五星及四種指定投票方法")
+        names, matrix = self.names, self.matrix
+        weights = np.ones(len(names), dtype=float)
+        summary = (
+            _performance_summary(performance, stars) if summary is None else summary
+        )
+        if method == "shrink" and all(summary.get(n, (0, 0))[0] >= 30 for n in names):
+            null_sd = math.sqrt(stars * 0.25 * 0.75 * (80 - stars) / 79)
+            for i, name in enumerate(names):
+                n, mean_hits = summary[name]
+                effect = np.clip((mean_hits - stars * 0.25) / null_sd, -0.5, 0.5)
+                weights[i] = 1 + effect * n / (n + 100)
+        weights /= weights.sum()
+        if stars not in self.support:
+            self.support[stars] = np.bincount(
+                self.order[:, :stars].ravel(), minlength=80
+            )
+        support = self.support[stars]
+        average = weights @ matrix
+        if method == "majority":
+            combined = (support + average / (len(names) + 1)) / (len(names) + 1)
+        elif method == "borda":
+            if self.borda is None:
+                self.borda = (
+                    (rankdata(matrix, method="average", axis=1) - 1) / 79
+                ).mean(axis=0)
+            combined = self.borda
+        else:
+            combined = average
+        return {
+            "method": method,
+            "stars": stars,
+            "scores": combined.tolist(),
+            "ranking": _rank(combined),
+            "weights": {n: float(w) for n, w in zip(names, weights)},
+            "support": {str(n + 1): int(v) for n, v in enumerate(support)},
+            "excluded": dict(self.excluded),
+            "score_kind": "相對排名分數，非開獎機率",
+        }
+
+
 def fuse(
     scores: dict,
     method: str = "shrink",
     stars: int = 3,
     performance: list[dict] | None = None,
 ) -> dict:
-    """Fuse independently computed models into a deterministic complete ranking.
+    """Independent deterministic full ranking; score validation isolates failures.
 
-    Invalid model vectors are isolated in ``excluded``. ``support`` counts models
-    placing a number in their own top-k. Shrink uses completed past outcomes
-    exclusively; all models retain equal weight until each has 30 observations.
-    Even mature weights shrink strongly toward equal and have bounded influence.
+    Shrink exclusively consumes already settled observations. The original
+    public contract and scalar floating-point reduction order are preserved.
     """
     if stars not in STARS or method not in METHODS:
         raise ValueError("僅支援三星、四星、五星及四種指定投票方法")
-    valid, excluded = {}, {}
-    for name, vector in scores.items():
-        try:
-            valid[name] = normalize_scores(vector)
-        except (TypeError, ValueError) as exc:
-            excluded[name] = str(exc)
-    if not valid:
-        raise ValueError("目前沒有可用的完整模型分數")
-    names = sorted(valid)
-    matrix = np.asarray([valid[name] for name in names])
-    weights = np.ones(len(names), dtype=float)
-    summary = _performance_summary(performance, stars)
-    if method == "shrink" and all(summary.get(n, (0, 0))[0] >= 30 for n in names):
-        null_sd = math.sqrt(stars * 0.25 * 0.75 * (80 - stars) / 79)
-        for i, name in enumerate(names):
-            n, mean_hits = summary[name]
-            # A 100-draw equivalent prior limits noisy early weight changes.
-            effect = np.clip((mean_hits - stars * 0.25) / null_sd, -0.5, 0.5)
-            weights[i] = 1 + effect * n / (n + 100)
-    weights /= weights.sum()
-    support = np.zeros(80, dtype=int)
-    for row in matrix:
-        support[np.asarray(_rank(row)[:stars]) - 1] += 1
-    average = weights @ matrix
-    if method == "majority":
-        # One extra vote always dominates the fractional rank tie breaker.
-        combined = (support + average / (len(names) + 1)) / (len(names) + 1)
-    elif method == "borda":
-        points = np.asarray(
-            [(rankdata(row, method="average") - 1) / 79 for row in matrix]
-        )
-        combined = points.mean(axis=0)
-    else:
-        combined = average
-    return {
-        "method": method,
-        "stars": stars,
-        "scores": combined.tolist(),
-        "ranking": _rank(combined),
-        "weights": {n: float(w) for n, w in zip(names, weights)},
-        "support": {str(n + 1): int(v) for n, v in enumerate(support)},
-        "excluded": excluded,
-        "score_kind": "相對排名分數，非開獎機率",
-    }
+    return FusionScores(scores).calculate(method, stars, performance)
+
+
+def fuse_many(scores: dict, performance: list[dict] | None = None) -> dict:
+    """All star/method combinations from one normalized immutable score matrix."""
+    prepared = FusionScores(scores)
+    result = {}
+    for stars in STARS:
+        summary = _performance_summary(performance, stars)
+        result[str(stars)] = {
+            method: prepared.calculate(method, stars, summary=summary)
+            for method in METHODS
+        }
+    return result
 
 
 def _wilson(successes: int, n: int, z: float = 1.95996398454):
@@ -450,6 +484,10 @@ def walk_forward(
     ):
         raise ValueError("資料不足：每個目標期之前至少需要 100 期訓練資料")
     results, folds, warnings = [], [], []
+    feature_history = None
+    feature_origin = feature_end = 0
+    if hasattr(ModelSuite, "scores_prepared"):
+        from taiwan_lottery.ml.bingo_models import FeatureHistory
     totals = defaultdict(lambda: [0, 0])
     suite = None
     latest_fit_index = None
@@ -471,7 +509,24 @@ def walk_forward(
 
             suite = ModelSuite(history, **kwargs).fit(progress=fit_progress)
             latest_fit_index = index - 1
-        score_map = suite.scores(history)
+        effective_window = min(window, getattr(suite, "window", window))
+        if hasattr(suite, "scores_prepared"):
+            # A bounded block plus its context prevents memory growing with the
+            # entire stored database. Each query is still an exclusive prefix.
+            if feature_history is None or index >= feature_end:
+                feature_origin = max(0, index - effective_window)
+                feature_end = min(len(data), index + 128)
+                feature_history = FeatureHistory(
+                    [d["numbers"] for d in data[feature_origin:feature_end]]
+                )
+            offset = index - feature_origin
+            current_row = feature_history.row(offset, effective_window)
+            score_map = suite.scores_prepared(
+                feature_history.matrix_before(offset, effective_window), current_row
+            )
+        else:
+            current_row = None
+            score_map = suite.scores(history)
         if model_names is not None:
             score_map = {n: s for n, s in score_map.items() if n in model_names}
         if not score_map:
@@ -489,11 +544,12 @@ def walk_forward(
             for (name, stars), (n, total) in totals.items()
             if n
         ]
+        fusions = fuse_many(score_map, past_performance)
         for method in METHODS:
-            predictions[method] = {}
-            for stars in STARS:
-                fused = fuse(score_map, method, stars, past_performance)
-                predictions[method][str(stars)] = fused["ranking"][:stars]
+            predictions[method] = {
+                str(stars): fusions[str(stars)][method]["ranking"][:stars]
+                for stars in STARS
+            }
         fold = {
             "target_term": data[index]["draw_term"],
             "trained_through": data[latest_fit_index]["draw_term"],
@@ -518,7 +574,10 @@ def walk_forward(
                 )
                 totals[(name, int(key))][0] += 1
                 totals[(name, int(key))][1] += results[-1]["hit_count"]
-        suite.update(history, data[index]["numbers"])
+        if hasattr(suite, "scores_prepared"):
+            suite.update(history, data[index]["numbers"], feature_row=current_row)
+        else:
+            suite.update(history, data[index]["numbers"])
         # If custom intervals skip dates, rebuild from the complete known prefix.
         if step + 1 < len(eligible) and eligible[step + 1] != index + 1:
             suite = None

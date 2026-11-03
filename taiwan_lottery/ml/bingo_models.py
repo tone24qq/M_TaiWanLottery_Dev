@@ -102,8 +102,95 @@ def _features_from_matrix(matrix: np.ndarray) -> np.ndarray:
     return result
 
 
+def latest_features(matrix: np.ndarray) -> np.ndarray:
+    """Compute just the next causal feature row, without an O(n*80*10) tensor.
+
+    Binary counts are exact in float32 at the supported history limit. Casting
+    each frequency and momentum at the same point as the original training
+    tensor preserves scores, ranking ties and serialized model semantics.
+    """
+    n = len(matrix)
+    row = np.zeros((80, len(FEATURE_NAMES)), dtype=np.float32)
+    for column, window in enumerate(WINDOWS):
+        count = min(n, window)
+        if count:
+            row[:, column] = matrix[-count:].sum(axis=0) / count
+    if n:
+        seen = matrix.any(axis=0)
+        reverse_index = matrix[::-1].argmax(axis=0)
+        row[:, 4] = np.minimum(np.where(seen, reverse_index, n) / 20, 2)
+        row[:, 6] = matrix[-1]
+    row[:, 5] = row[:, 0] - row[:, 1]
+    numbers = np.arange(1, 81)
+    row[:, 7] = numbers / 80
+    row[:, 8] = np.sin(2 * np.pi * numbers / 80)
+    row[:, 9] = np.cos(2 * np.pi * numbers / 80)
+    return row
+
+
+class FeatureHistory:
+    """Read-only reusable binary/prefix snapshot for causal fold calculations.
+
+    ``index`` is an exclusive target boundary. Rows after it cannot affect a
+    result. A clipped window resets unseen-number gaps exactly like constructing
+    a fresh history slice, including when an appearance predates that slice.
+    """
+
+    def __init__(self, history: list[list[int]]):
+        self.matrix = draw_matrix(history)
+        self.matrix.flags.writeable = False
+        self.prefix = np.concatenate(
+            [np.zeros((1, 80)), np.cumsum(self.matrix, axis=0)], axis=0
+        )
+        n = len(self.matrix)
+        self.last_seen = (
+            np.maximum.accumulate(
+                np.where(self.matrix > 0, np.arange(n)[:, None], -1), axis=0
+            )
+            if n
+            else np.empty((0, 80), dtype=int)
+        )
+        self.prefix.flags.writeable = False
+        self.last_seen.flags.writeable = False
+
+    def _bounds(self, index, window):
+        index = len(self.matrix) if index is None else index
+        if not isinstance(index, (int, np.integer)) or not 0 <= index <= len(
+            self.matrix
+        ):
+            raise ValueError("特徵目標邊界超出資料範圍")
+        if window is not None and (
+            not isinstance(window, (int, np.integer)) or window < 1
+        ):
+            raise ValueError("特徵視窗必須為正整數")
+        return max(0, index - window) if window is not None else 0, index
+
+    def matrix_before(self, index=None, window=None):
+        start, index = self._bounds(index, window)
+        return self.matrix[start:index]
+
+    def row(self, index=None, window=None):
+        start, index = self._bounds(index, window)
+        row = np.zeros((80, len(FEATURE_NAMES)), dtype=np.float32)
+        for column, width in enumerate(WINDOWS):
+            begin = max(start, index - width)
+            row[:, column] = (self.prefix[index] - self.prefix[begin]) / max(
+                1, index - begin
+            )
+        if index > start:
+            last = np.maximum(self.last_seen[index - 1], start - 1)
+            row[:, 4] = np.minimum((index - 1 - last) / 20, 2)
+            row[:, 6] = self.matrix[index - 1]
+        row[:, 5] = row[:, 0] - row[:, 1]
+        numbers = np.arange(1, 81)
+        row[:, 7] = numbers / 80
+        row[:, 8] = np.sin(2 * np.pi * numbers / 80)
+        row[:, 9] = np.cos(2 * np.pi * numbers / 80)
+        return row
+
+
 def features(history: list[list[int]]) -> np.ndarray:
-    return _features_from_matrix(draw_matrix(history))[-1]
+    return latest_features(draw_matrix(history))
 
 
 def supervised_samples(
@@ -175,8 +262,19 @@ class ModelSuite:
 
     def fit(self, progress: Callable | None = None) -> "ModelSuite":
         history = self.history
-        x, y = supervised_samples(history)
         matrix = draw_matrix(history)
+        if any(
+            name in self.enabled
+            for name in ("river", "lightgbm", "catboost", "transformer", "dqn")
+        ):
+            all_features = _features_from_matrix(matrix)
+            x, y = all_features[20:-1], matrix[20:]
+            current_features = all_features[-1]
+        else:
+            # Statistical-only fits have no supervised feature tensor to build.
+            x = np.empty((max(0, len(matrix) - 20), 0, 0), dtype=np.float32)
+            y = matrix[20:]
+            current_features = latest_features(matrix)
         minima = {
             "frequency": 10,
             "cdm": 10,
@@ -307,9 +405,7 @@ class ModelSuite:
                 # Validate the entire 80-element output before admitting a scorer.
                 if name != "ensemble":
                     normalize_scores(
-                        self._score_one(
-                            name, history, matrix, _features_from_matrix(matrix)[-1]
-                        )
+                        self._score_one(name, history, matrix, current_features)
                     )
                 total = max(1, self.records[name]["total"])
                 self._report(progress, name, total, total, "ready")
@@ -358,7 +454,24 @@ class ModelSuite:
         matrix = draw_matrix(history)
         if not len(matrix):
             return {}
-        row = _features_from_matrix(matrix)[-1]
+        return self.scores_prepared(matrix)
+
+    def scores_prepared(
+        self, matrix: np.ndarray, row: np.ndarray | None = None
+    ) -> dict[str, list[float]]:
+        """Score a validated shared snapshot; no history rescan or feature tensor.
+
+        Public ``scores`` remains the validating boundary. Walk-forward and the
+        runtime may reuse ``FeatureHistory`` matrix views for this trusted path.
+        """
+        matrix = matrix[-self.window :]
+        if not len(matrix):
+            return {}
+        if row is None:
+            row = latest_features(matrix)
+        if row.shape != (80, len(FEATURE_NAMES)) or not np.isfinite(row).all():
+            raise ValueError("模型特徵必須為 80 號完整有限矩陣")
+        history = None
         result = {}
         for name in self.enabled:
             if name not in self.models or name == "ensemble":
@@ -377,7 +490,13 @@ class ModelSuite:
             ).tolist()
         return result
 
-    def update(self, previous_history: list[list[int]], new_draw: list[int]):
+    def update(
+        self,
+        previous_history: list[list[int]],
+        new_draw: list[int],
+        *,
+        feature_row=None,
+    ):
         """Learn exactly one newly observed draw; duplicate calls are idempotent.
 
         The caller supplies the history ending immediately before new_draw.
@@ -398,7 +517,7 @@ class ModelSuite:
                 )
                 self.models.pop("river", None)
             else:
-                row = features(previous)
+                row = features(previous) if feature_row is None else feature_row
                 for number, learner in enumerate(self.models["river"]):
                     learner.learn_one(
                         dict(zip(FEATURE_NAMES, map(float, row[number]))),
