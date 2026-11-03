@@ -29,6 +29,12 @@ from taiwan_lottery.ml.bingo_evaluation import (
 )
 from taiwan_lottery.scraper.parsers.bingo_parser import BingoScraper
 from taiwan_lottery.services.bingo_workers import WorkerManager
+from taiwan_lottery.ml.bingo_adaptive import AdaptiveController
+from taiwan_lottery.ml.bingo_research_strategies import ResearchStrategies
+from taiwan_lottery.ml.bingo_models import MODEL_NAMES
+from taiwan_lottery.ml.bingo_contexts import context_audit
+from taiwan_lottery.services.bingo_monitoring import PerformanceMonitor
+from taiwan_lottery.services.bingo_resources import ResourceSampler
 
 
 class BingoRuntime:
@@ -69,18 +75,53 @@ class BingoRuntime:
         self._bootstrapping = True
         self._closed = False
         self._complete_days = set()
+        self.adaptive = AdaptiveController(
+            baseline_window=settings.TRAIN_WINDOW,
+            shadow_budget=settings.ADAPTIVE_SHADOW_BUDGET,
+        )
+        self.performance = PerformanceMonitor()
+        self.families = ResearchStrategies()
+        self._monitor_view = self.performance.status()
+        self.resources = ResourceSampler()
+        self._strategy_events = []
+        self._diagnostics = []
+        self._validation_at = None
+        self._validation_source = None
+        self._profile_status = {}
 
     async def initialize(self):
         await self.store.init_schema()
         self.snapshot = await self.store.history(limit=10000)
         self._bootstrapping = not bool(self.snapshot)
+        for namespace in ("adaptive", "monitor", "families", "validation"):
+            saved = await self.store.load_research_state(namespace)
+            if not saved:
+                continue
+            if namespace == "adaptive":
+                if saved["payload"].get("config", {}).get("simulation"):
+                    raise ValueError("歷史模擬策略狀態不可載入正式流程")
+                self.adaptive = AdaptiveController(saved["payload"])
+            elif namespace == "monitor":
+                self.performance = PerformanceMonitor(saved["payload"])
+            elif namespace == "families":
+                if saved["payload"].get("is_live") is False:
+                    raise ValueError("歷史模擬不可載入並行實戰")
+                self.families = ResearchStrategies(saved["payload"])
+            else:
+                self._validation_at = saved["payload"].get("last_evaluation_at")
+                self._validation_source = saved["payload"].get("source_term")
+        self._monitor_view = self.performance.status()
+        if self.snapshot:
+            self.adaptive.plan(
+                self.snapshot[-1]["draw_term"], history=len(self.snapshot)
+            )
         await self.store.settle(now=self.clock())
         await self._refresh()
         previous = await self.store.latest_evaluation()
         if previous:
             self.workers.backtest.update(previous)
             if previous.get("report"):
-                self._apply_strategy(previous["report"])
+                self._apply_strategy(previous["report"], restore=True)
         manifest = (
             Path(
                 getattr(
@@ -233,6 +274,7 @@ class BingoRuntime:
                 self._bootstrapping = False
                 await self._predict_locked()
                 await self._maybe_train()
+                await self._maybe_evaluate()
             except Exception as exc:
                 # Committed source data and predictions survive transient failures.
                 self.sync.update(
@@ -243,6 +285,8 @@ class BingoRuntime:
             return dict(self.sync)
 
     async def _refresh(self):
+        await self.store.settle_shadow(now=self.clock())
+        await self._process_research()
         if self._ledger_dirty:
             self.outcomes = await self.store.outcome_rows(limit_terms=1000)
             self._outcome_summary = await self.store.outcome_summary()
@@ -276,43 +320,96 @@ class BingoRuntime:
             self.prediction = existing
             return existing
         if at <= self.clock():
-            # Late official results may never be labelled as next-draw foresight.
             self.sync["state"] = "delayed"
             return None
         snapshot = copy.deepcopy(
             self.snapshot[-max(settings.TRAIN_WINDOW + 500, 1500) :]
         )
-        result = await self.workers.score(snapshot)
+        plan = self.adaptive.plan(latest["draw_term"], history=len(snapshot))
+        plan["target_date"] = at.date().isoformat()
+        if not settings.ADAPTIVE_ENABLED:
+            plan["shadow_windows"] = []
+            plan["champions"] = {
+                str(k): {n: settings.TRAIN_WINDOW for n in MODEL_NAMES}
+                for k in (3, 4, 5)
+            }
+            plan["profiles_by_star"] = {}
+        if getattr(self.workers, "adaptive_scoring", False):
+            result = await self.workers.score(snapshot, plan=plan)
+        else:
+            result = await self.workers.score(snapshot)
         if result.get("warning") and not self.workers.busy:
             self.workers.training.update(state="failed", error=result["warning"])
-            logger.warning(result["warning"])
-        score_map = {}
-        for name, vector in result["scores"].items():
-            try:
-                score_map[name] = normalize_scores(vector)
-            except (ValueError, TypeError) as exc:
-                logger.warning("排除無效模型 {}：{}", name, exc)
-        if not score_map:
-            raise ValueError("無可用模型評分，尚未封存")
-        method = self.strategy["method"]
-        forecasts, by_star = [], {}
-        fusions = fuse_many(score_map, self.outcomes)
+        self._profile_status = result.get("profile_status", {})
+        forecasts, shadows, audits, by_star = [], [], [], {}
+        historical_scores = {}
+        historical_supports = {}
+        default_scores = result["scores"]
         for stars in (3, 4, 5):
-            for name, vector in score_map.items():
+            key = str(stars)
+            valid = {}
+            for name, vector in (
+                result.get("by_star_scores", {}).get(key, default_scores).items()
+            ):
+                try:
+                    valid[name] = normalize_scores(vector)
+                except (ValueError, TypeError) as exc:
+                    logger.warning("排除無效模型 {}：{}", name, exc)
+            if not valid:
+                raise ValueError("無可用模型評分，尚未封存")
+            metadata = {}
+            for name, vector in valid.items():
                 ranking = sorted(range(1, 81), key=lambda n: (-vector[n - 1], n))
+                audit = context_audit(result, snapshot, name, stars, plan)
+                metadata[name] = audit
                 forecasts.append(
                     dict(
                         model=name,
                         stars=stars,
                         numbers=ranking[:stars],
                         scores=vector,
-                        version=result["version"],
+                        version=audit["model_version"],
                         method="individual",
                     )
                 )
-            selected = None
-            for voting in ("equal", "shrink", "borda", "majority"):
-                fused = fusions[str(stars)][voting]
+                audits.append(dict(model=name, stars=stars, metadata=audit))
+            pending = self._profile_status.get(key, {}).get("status") in (
+                "pending",
+                "failed",
+            )
+            method = (
+                "shrink"
+                if pending
+                else plan.get("vote_methods", {}).get(key, self.strategy["method"])
+            )
+            fused_many = fuse_many(valid, self.outcomes)[key]
+            selected = fused_many[method]
+            historical_scores[key] = selected["scores"]
+            historical_supports[key] = selected["support"]
+            common = dict(
+                training_cutoff=max(
+                    (r["training_cutoff"] for r in metadata.values()), key=int
+                ),
+                feature_cutoff=latest["draw_term"],
+                history_start=min(
+                    (r["history_start"] for r in metadata.values()), key=int
+                ),
+                history_end=latest["draw_term"],
+                history_count=max(r["history_count"] for r in metadata.values()),
+                model_version=result["version"],
+                feature_version=result.get(
+                    "feature_version", "bingo-features-causal-v1"
+                ),
+                policy_version=plan["version"],
+                model_windows={n: r["window"] for n, r in metadata.items()},
+                input_hash=result["snapshot_hash"],
+                scoring_cost_seconds=sum(
+                    (r.get("scoring_cost_seconds") or 0) for r in metadata.values()
+                )
+                / len(metadata),
+                strategy=method,
+            )
+            for voting, fused in fused_many.items():
                 forecasts.append(
                     dict(
                         model=voting,
@@ -324,36 +421,241 @@ class BingoRuntime:
                         method=voting,
                     )
                 )
-                if voting == method:
-                    selected = fused
-            self._weights[str(stars)] = selected["weights"]
+                audits.append(
+                    dict(
+                        model=voting,
+                        stars=stars,
+                        metadata={**common, "vote_strategy": voting},
+                    )
+                )
+            self._weights[key] = selected["weights"]
             numbers = selected["ranking"][:stars]
-            by_star[str(stars)] = dict(
+            ranking = [
+                dict(
+                    number=n,
+                    score=selected["scores"][n - 1],
+                    support=selected["support"][str(n)],
+                )
+                for n in selected["ranking"]
+            ]
+            by_star[key] = dict(
                 numbers=numbers,
                 scores=[selected["scores"][n - 1] for n in numbers],
                 weights=selected["weights"],
                 confidence=sum(selected["scores"][n - 1] for n in numbers) / stars,
                 support=[selected["support"][str(n)] for n in numbers],
-                ranking=[
-                    dict(
-                        number=n,
-                        score=selected["scores"][n - 1],
-                        support=selected["support"][str(n)],
-                    )
-                    for n in selected["ranking"]
-                ],
+                ranking=ranking,
+                method=method,
+                model_windows=common["model_windows"],
             )
             if stars == 3:
-                full_ranking = [
-                    dict(
-                        number=n,
-                        score=selected["scores"][n - 1],
-                        support=selected["support"][str(n)],
+                full_ranking = ranking
+            # Each alternative context is independently scored before the answer.
+            for window, context in (
+                result.get("contexts_by_star", {})
+                .get(key, result.get("contexts", {}))
+                .items()
+            ):
+                w = int(window)
+                required = set(plan.get("shadow_windows", [])) | {
+                    r
+                    for entry in plan.get("by_model", {}).values()
+                    for r in entry.get("rollback_windows", [])
+                }
+                if w not in required:
+                    continue
+                for name, vector in context["scores"].items():
+                    if name not in valid or metadata[name]["window"] == w:
+                        continue
+                    order = sorted(range(1, 81), key=lambda n: (-vector[n - 1], n))
+                    audit = context_audit(result, snapshot, name, stars, plan, window=w)
+                    shadows.append(
+                        dict(
+                            model=name,
+                            stars=stars,
+                            window=w,
+                            profile="window-" + str(w),
+                            numbers=order[:stars],
+                            scores=vector,
+                            metadata=audit,
+                            version=audit["model_version"],
+                            method="shadow",
+                        )
                     )
-                    for n in selected["ranking"]
-                ]
+            previous = result.get("previous_policy_scores", {}).get(key)
+            if previous and not pending:
+                current = plan["profiles_by_star"][key]
+                shadows.append(
+                    dict(
+                        model="policy",
+                        stars=stars,
+                        window=current["context_window"],
+                        profile="policy:" + current["id"],
+                        numbers=numbers,
+                        scores=selected["scores"],
+                        metadata={**common, "policy_profile_id": current["id"]},
+                        version=plan["version"],
+                        method=method,
+                    )
+                )
+                prior = previous["profile"]
+                prior_fusion = fuse(
+                    previous["scores"], prior["method"], stars, self.outcomes
+                )
+                shadows.append(
+                    dict(
+                        model="policy",
+                        stars=stars,
+                        window=prior["context_window"],
+                        profile="policy:" + prior["id"],
+                        numbers=prior_fusion["ranking"][:stars],
+                        scores=prior_fusion["scores"],
+                        metadata={
+                            **common,
+                            "policy_profile_id": prior["id"],
+                            "scoring_cost_seconds": previous["scoring_cost_seconds"],
+                        },
+                        version=prior["id"],
+                        method=prior["method"],
+                    )
+                )
+        research_predictions = {}
+        today = result.get("today")
+        if today is not None:
+            today_fusions = {
+                str(k): fuse(today["scores"], "equal", k) for k in (3, 4, 5)
+            }
+            today_scores = {k: v["scores"] for k, v in today_fusions.items()}
+            research_predictions = self.families.score(
+                today_scores, historical_scores, today["history_count"]
+            )
+            historic_snapshot = snapshot[-settings.TRAIN_WINDOW :]
+            dates = sorted(
+                {
+                    to_taipei(d["draw_datetime"]).date().isoformat()
+                    for d in historic_snapshot
+                }
+            )
+            today_audit = dict(
+                data_scope="target_day_only",
+                target_date=today["target_date"],
+                history_dates=today["history_dates"],
+                history_start=today["history_start"],
+                history_end=today["history_end"],
+                history_count=today["history_count"],
+                training_cutoff=today.get("training_cutoff"),
+                feature_cutoff=today["history_end"],
+                model_version=today["version"],
+                feature_version="target-day-features-v1",
+                input_hash=today["snapshot_hash"],
+                warmup_prior=today["warmup"],
+                models_used=sorted(today["scores"]),
+                scoring_cost_seconds=today["scoring_cost_seconds"],
+            )
+            history_audit = dict(
+                data_scope="cross_day_history",
+                history_dates=dates,
+                history_start=historic_snapshot[0]["draw_term"],
+                history_end=latest["draw_term"],
+                history_count=len(historic_snapshot),
+                training_cutoff=result.get("training_cutoff", latest["draw_term"]),
+                feature_cutoff=latest["draw_term"],
+                model_version=result["version"],
+                feature_version=result.get("feature_version"),
+                input_hash=result["snapshot_hash"],
+            )
+            for stars in (3, 4, 5):
+                key = str(stars)
+                for name, pred in research_predictions[key].items():
+                    info = dict(
+                        today_audit if name == "today" else history_audit,
+                        research_strategy=name,
+                        today_weight=pred["today_weight"],
+                        history_weight=pred["history_weight"],
+                        weight_reason=pred["reason"],
+                    )
+                    if name == "hybrid":
+                        info.update(
+                            today_input_hash=today["snapshot_hash"],
+                            historical_input_hash=result["snapshot_hash"],
+                        )
+                    info["window"] = info["history_count"]
+                    shadows.append(
+                        dict(
+                            model="strategy_" + name,
+                            stars=stars,
+                            window=max(1, info["history_count"]),
+                            profile="research-" + name,
+                            numbers=pred["numbers"],
+                            scores=pred["scores"],
+                            metadata=info,
+                            version="prospective-strategies-v1:"
+                            + str(info["model_version"]),
+                            method="prospective_research",
+                        )
+                    )
+                champion = self.families.state["champions"][key]
+                if champion != "historical":
+                    chosen = research_predictions[key][champion]
+                    production_info = dict(
+                        today_audit if champion == "today" else history_audit,
+                        production_strategy=champion,
+                    )
+                    if champion == "hybrid":
+                        production_info.update(
+                            today_input_hash=today["snapshot_hash"],
+                            historical_input_hash=result["snapshot_hash"],
+                        )
+                    forecasts.append(
+                        dict(
+                            model="production",
+                            stars=stars,
+                            numbers=chosen["numbers"],
+                            scores=chosen["scores"],
+                            version="prospective-strategies-v1",
+                            method="strategy_" + champion,
+                            weights={
+                                "today": chosen["today_weight"],
+                                "historical": chosen["history_weight"],
+                            },
+                        )
+                    )
+                    audits.append(
+                        dict(
+                            model="production",
+                            stars=stars,
+                            metadata=production_info,
+                        )
+                    )
+                    by_star[key].update(
+                        numbers=chosen["numbers"],
+                        scores=[chosen["scores"][n - 1] for n in chosen["numbers"]],
+                        confidence=sum(
+                            chosen["scores"][n - 1] for n in chosen["numbers"]
+                        )
+                        / stars,
+                        ranking=[
+                            dict(number=n, score=chosen["scores"][n - 1], support=None)
+                            for n in chosen["ranking"]
+                        ],
+                        method="strategy_" + champion,
+                        support=[
+                            today_fusions[key]["support"][str(n)]
+                            if champion == "today"
+                            else int(n in research_predictions[key]["today"]["numbers"])
+                            + int(
+                                n in research_predictions[key]["historical"]["numbers"]
+                            )
+                            for n in chosen["numbers"]
+                        ],
+                        support_kind="模型" if champion == "today" else "策略",
+                    )
+                    if stars == 3:
+                        full_ranking = by_star[key]["ranking"]
+        methods = {r["method"] for r in by_star.values()}
         payload = dict(
-            method=method,
+            method=next(iter(methods)) if len(methods) == 1 else "per_star",
+            methods_by_star={k: r["method"] for k, r in by_star.items()},
             weights=copy.deepcopy(self._weights),
             by_star=by_star,
             ranking=full_ranking,
@@ -361,6 +663,18 @@ class BingoRuntime:
             source_term=latest["draw_term"],
             target_time=at.isoformat(),
             model_version=result["version"],
+            feature_version=result.get("feature_version", "bingo-features-causal-v1"),
+            policy_version=plan["version"],
+            profile_status=self._profile_status,
+            shadow_count=len(shadows),
+            research_strategies=research_predictions,
+            today_status={
+                k: v
+                for k, v in today.items()
+                if k not in ("scores", "contexts", "by_star_scores")
+            }
+            if today is not None
+            else None,
         )
         self.prediction = await self.store.archive(
             term,
@@ -370,11 +684,171 @@ class BingoRuntime:
             payload,
             forecasts,
             now=self.clock(),
+            audit=audits,
+            shadows=shadows,
         )
         self.boards = live_rankings_summary(
             self._outcome_summary, weights=self._weights
         )
         return self.prediction
+
+    async def _process_research(self):
+        pending = await self.store.pending_research_settlements(limit_terms=30)
+        for target in pending["targets"]:
+            term = target["target_term"]
+            if self.adaptive.state["last_target"] and int(term) <= int(
+                self.adaptive.state["last_target"]
+            ):
+                await self.store.commit_research_update(
+                    term,
+                    {},
+                    dict(
+                        target_term=term,
+                        late_result=True,
+                        reason="遲到舊結果僅保留診斷，不回寫已推進的策略狀態",
+                    ),
+                    [],
+                )
+                continue
+            backup = (
+                self.adaptive.to_dict(),
+                self.performance.to_dict(),
+                self.families.to_dict(),
+            )
+            try:
+                if self.snapshot:
+                    self.adaptive.plan(
+                        self.snapshot[-1]["draw_term"], history=len(self.snapshot)
+                    )
+                report = self.performance.observe(
+                    term,
+                    target["live_rows"]
+                    + [
+                        r
+                        for r in target["shadow_rows"]
+                        if r["model"].startswith("strategy_")
+                    ],
+                    sync=self.sync,
+                    model_statuses=self.workers.models,
+                )
+                live = []
+                for row in target["live_rows"]:
+                    if row["model"] not in MODEL_NAMES:
+                        continue
+                    value = {
+                        **row,
+                        "window": row.get("window")
+                        or self.adaptive.config["baseline_window"],
+                    }
+                    live.append(value)
+                candidates = [
+                    r for r in target["shadow_rows"] if r["model"] in MODEL_NAMES
+                ]
+                update = self.adaptive.observe(
+                    term, live, candidates, diagnostics=report
+                )
+                events = update.get(
+                    "events", []
+                ) + self.adaptive.observe_profile_outcomes(term, target["shadow_rows"])
+                events += self.families.observe(term, target["shadow_rows"])
+                compact = {k: v for k, v in report.items() if k != "models"}
+                compact["models"] = [
+                    {
+                        k: r.get(k)
+                        for k in (
+                            "model",
+                            "name",
+                            "stars",
+                            "drift",
+                            "score_distribution",
+                            "window",
+                            "repetition_reason",
+                        )
+                    }
+                    for r in report.get("models", [])
+                ]
+                await self.store.commit_research_update(
+                    term,
+                    {
+                        "adaptive": self.adaptive.to_dict(),
+                        "monitor": self.performance.to_dict(),
+                        "families": self.families.to_dict(),
+                    },
+                    compact,
+                    events,
+                )
+                self._monitor_view = self.performance.status()
+            except Exception:
+                self.adaptive = AdaptiveController(backup[0])
+                self.performance = PerformanceMonitor(backup[1])
+                self.families = ResearchStrategies(backup[2])
+                raise
+        self._strategy_events = await self.store.strategy_events(limit=30)
+        self._diagnostics = await self.store.latest_diagnostics(limit=30)
+
+    async def _maybe_evaluate(self):
+        if (
+            not settings.AUTO_VALIDATE
+            or not settings.SCRAPER_ENABLED
+            or not getattr(self.workers, "adaptive_scoring", False)
+            or self.workers.busy
+            or len(self.snapshot) < 300
+        ):
+            return
+        if self._validation_at:
+            since = (
+                self.clock() - to_taipei(datetime.fromisoformat(self._validation_at))
+            ).total_seconds()
+            if since < settings.VALIDATION_COOLDOWN_SECONDS:
+                return
+        # A fixed bootstrap comparison, followed by monitored bounded re-evaluation.
+        status = self.performance.status()
+        if self._validation_source and not status.get("evaluation_requested"):
+            return
+        await self.start_backtest(
+            {
+                "count": min(
+                    settings.VALIDATION_COUNT, max(100, len(self.snapshot) - 230)
+                ),
+                "mode": "nested",
+            }
+        )
+
+    def intelligence(self):
+        adaptive = self.adaptive.status()
+        statuses = {r["name"]: r for r in self.workers.models}
+        for item in adaptive["models"]:
+            item["training_window"] = statuses.get(item["name"], {}).get(
+                "training_history_count"
+            )
+            phase = self._profile_status.get(str(item["stars"]), {})
+            if phase.get("status") in ("pending", "failed"):
+                item["reason"] = phase.get("reason", "候選工件尚未就緒，固定基準接手")
+        monitor = copy.deepcopy(self._monitor_view)
+        evaluating = bool(
+            self.workers.busy
+            and getattr(self.workers, "active_kind", None) == "backtest"
+        )
+        monitor["evaluating"] = evaluating
+        return dict(
+            adaptive=adaptive,
+            monitor=monitor,
+            events=self._strategy_events,
+            diagnostics=self._diagnostics,
+            research_strategies={
+                **self.families.status(),
+                "predictions": (self.prediction or {}).get("research_strategies", {}),
+                "today_status": (self.prediction or {}).get("today_status"),
+            },
+            resources=self.resources.sample(self.workers),
+            jobs=dict(
+                training=self.workers.training,
+                backtest={
+                    k: v for k, v in self.workers.backtest.items() if k != "report"
+                },
+                evaluation={"state": "running" if evaluating else "waiting"},
+            ),
+        )
 
     async def _maybe_train(self):
         if (
@@ -385,6 +859,13 @@ class BingoRuntime:
         ):
             return
         now = self.clock()
+        if (
+            self._last_train_term == self.snapshot[-1]["draw_term"]
+            and self._last_train_time
+            and self.workers.training.get("state") != "failed"
+        ):
+            await self._maybe_today_train()
+            return
         if (
             self._last_train_time
             and (now - self._last_train_time).total_seconds()
@@ -403,12 +884,62 @@ class BingoRuntime:
                 and (now - self._last_train_time).total_seconds() >= 60
             )
             if new_draws < settings.RETRAIN_MIN_DRAWS and not failed_retry:
+                await self._maybe_today_train()
                 return
         await self.start_training()
 
+    async def _maybe_today_train(self):
+        if self.workers.busy or not getattr(self.workers, "adaptive_scoring", False):
+            return
+        _, target_at = next_draw(
+            self.snapshot[-1]["draw_term"], self.snapshot[-1]["draw_datetime"]
+        )
+        day = target_at.date().isoformat()
+        today = [
+            d
+            for d in self.snapshot
+            if to_taipei(d["draw_datetime"]).date().isoformat() == day
+        ]
+        if len(today) < 10:
+            return
+        path = Path(self.workers.directory) / "today" / day / "current.json"
+        train = True
+        if path.exists():
+            try:
+                old = json.loads(path.read_text())
+                indexes = [
+                    i
+                    for i, d in enumerate(today)
+                    if d["draw_term"] == old["source_term"]
+                ]
+                seen = indexes[0] + 1 if indexes else 0
+                maturity = any(seen < n <= len(today) for n in (10, 32, 80, 96))
+                train = (
+                    maturity
+                    or len(today) - seen >= 36
+                    or old.get("context_limit") != self.workers.window
+                    or old.get("source_dates") != [day]
+                )
+            except (ValueError, KeyError, OSError):
+                pass
+        if train:
+            await self.workers.start(
+                "today_train", copy.deepcopy(today), {"target_date": day}
+            )
+
     async def start_training(self):
         snapshot = copy.deepcopy(self.snapshot[-settings.TRAIN_WINDOW :])
-        result = await self.workers.start("train", snapshot)
+        profiles = [
+            v
+            for v in self.adaptive.state["profiles_by_star"].values()
+            if v.get("id") not in ("fixed", "fixed-v1")
+        ]
+        if profiles and getattr(self.workers, "adaptive_scoring", False):
+            result = await self.workers.start(
+                "train", snapshot, {"validated_profiles": profiles}
+            )
+        else:
+            result = await self.workers.start("train", snapshot)
         self._last_train_size = len(self.snapshot)
         self._last_train_time = self.clock()
         self._last_train_term = self.snapshot[-1]["draw_term"]
@@ -455,7 +986,21 @@ class BingoRuntime:
                 else min(100000, requested + settings.TRAIN_WINDOW)
             )
         self.snapshot = await self.store.history(limit=10000)
+        mode = options.get("mode", "fixed")
+        if mode not in ("fixed", "adaptive", "nested"):
+            raise ValueError("未知回測模式")
+        if mode != "fixed" and options.get("count", 100) > 1000:
+            raise ValueError("巢狀比較每次最多1000期")
         result = await self.workers.start("backtest", copy.deepcopy(draws), options)
+        self._validation_at = self.clock().isoformat()
+        self._validation_source = draws[-1]["draw_term"] if draws else None
+        await self.store.save_research_state(
+            "validation",
+            {
+                "last_evaluation_at": self._validation_at,
+                "source_term": self._validation_source,
+            },
+        )
         await self.store.save_evaluation(result["run_id"], "running", None)
         return result
 
@@ -465,16 +1010,41 @@ class BingoRuntime:
             state["run_id"], state["state"], report, state.get("error")
         )
         if report:
-            self._apply_strategy(report)
+            async with self.lock:
+                before = self.adaptive.to_dict()
+                old_strategy = copy.deepcopy(self.strategy)
+                last_train = self._last_train_time
+                try:
+                    outcome = self._apply_strategy(report)
+                    await self.store.record_validation_update(
+                        self.adaptive.state["known_source_term"],
+                        {"adaptive": self.adaptive.to_dict()},
+                        outcome.get("events", []),
+                    )
+                    self._strategy_events = await self.store.strategy_events(limit=30)
+                except Exception:
+                    self.adaptive = AdaptiveController(before)
+                    self.strategy = old_strategy
+                    self._last_train_time = last_train
+                    raise
 
-    def _apply_strategy(self, report):
-        decision = recommend_method(report)
+    def _apply_strategy(self, report, restore=False):
+        # Old fixed reports remain inspectable; they cannot bypass phase-two
+        # nested confirmation, cooldown, repeated-search or shadow safeguards.
+        outcome = {"events": []}
+        if not restore:
+            outcome = self.adaptive.accept_validation(report)
+            if any(e["kind"] == "profile_validated" for e in outcome["events"]):
+                self._last_train_time = None
         self.strategy = dict(
-            method=decision["method"],
-            status=decision["reason"],
+            method="shrink",
+            status=report.get("decision", {}).get(
+                "reason", "固定基準維持正式策略；候選尚待獨立驗證"
+            ),
             comparison=report.get("method_comparison"),
-            validated=decision["validated"],
+            validated=False,
         )
+        return outcome
 
     def status(self):
         latest = self.snapshot[-1] if self.snapshot else None

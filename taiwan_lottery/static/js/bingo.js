@@ -17,6 +17,11 @@
     ensemble: "Ensemble 集成",
     equal: "Equal 等權",
     shrink: "Shrink 收縮加權",
+    per_star: "各星數獨立策略",
+    production: "正式採用策略",
+    strategy_today: "Today Only 當日資料",
+    strategy_historical: "Historical 跨日歷史",
+    strategy_hybrid: "Adaptive Hybrid 自適應混合",
     borda: "Borda 排名積分",
     majority: "Majority 多數決",
   };
@@ -111,7 +116,8 @@
   function displayName(value) {
     const key = String(value || "");
     if (key === "walk_forward") return "逐期驗證";
-    if (key.startsWith("walk_forward/")) return `逐期驗證／${displayName(key.slice(13))}`;
+    if (key.startsWith("walk_forward/"))
+      return `逐期驗證／${displayName(key.slice(13))}`;
     const work = key.match(/^(\w+) (\d+\/\d+)$/);
     if (work) return `${displayName(work[1])} ${work[2]}`;
     return (
@@ -314,7 +320,7 @@
             "span",
             `${String(n).padStart(2, "0")} 號 · 分數 ${num(score, 4)}`,
           ),
-          el("span", `支持 ${integer(support)} 個模型`),
+          el("span", `支持 ${integer(support)} 個${data.support_kind || "模型"}`),
         );
         details.append(row);
       });
@@ -702,6 +708,42 @@
         "report-note",
       ),
     );
+    if (report.nested) {
+      const nested = report.nested;
+      const note = el("div", null, "nested-validation-note");
+      note.append(el("h3", "雙層逐期驗證"));
+      note.append(
+        el(
+          "p",
+          `內層選擇 ${integer(nested.inner_selection_size)} 期 · 獨立驗證 ${integer(nested.inner_validation_size)} 期 · 外層區塊 ${integer(nested.outer_block_size)} 期 · 累計選擇 ${integer(nested.selection_count)} 次`,
+          "small subtle",
+        ),
+      );
+      note.append(
+        el(
+          "p",
+          "外層結果不回頭修改同折參數；候選未通過證據與資源門檻時保留正式基準。",
+          "small subtle",
+        ),
+      );
+      const selection = nested.selection_audit?.at(-1);
+      for (const key of ["3", "4", "5"]) {
+        const record = selection?.by_star?.[key];
+        if (!record) continue;
+        const evidence = record.shadow_validation || record.inner_validation;
+        const extra = evidence
+          ? ` · 驗證樣本 ${integer(evidence.samples)} · 平均差 ${num(evidence.delta, 3)} · 保守下界 ${num(evidence.lower_bound, 3)}`
+          : "";
+        note.append(
+          el(
+            "p",
+            `${labels[key]}：${record.reason || (record.promoted ? "候選通過門檻" : "維持正式策略")}${extra}`,
+            "small subtle",
+          ),
+        );
+      }
+      holder.append(note);
+    }
     if (Array.isArray(report.warnings))
       for (const warning of report.warnings)
         holder.append(el("p", warning, "small subtle"));
@@ -737,16 +779,13 @@
       holder.append(section);
     }
     if (reportURL) URL.revokeObjectURL(reportURL);
-    reportURL = URL.createObjectURL(
+    const artifactPath = typeof report.artifact_download_url === "string" && /^\/api\/v1\/bingo\/backtest\/artifact\/[a-f0-9]{32}$/.test(report.artifact_download_url) ? report.artifact_download_url : null;
+    reportURL = artifactPath ? null : URL.createObjectURL(
       new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }),
     );
-    const download = el(
-      "a",
-      "下載完整盲測報告（含逐期預測）",
-      "report-download",
-    );
-    download.href = reportURL;
-    download.download = "bingo-walk-forward.json";
+    const download = el("a", artifactPath ? "下載完整逐期紀錄（JSON.gz）" : "下載完整盲測報告（含逐期預測）", "report-download");
+    download.href = artifactPath || reportURL;
+    download.download = artifactPath ? "bingo-walk-forward.json.gz" : "bingo-walk-forward.json";
     holder.append(download);
   }
   async function refresh() {
@@ -863,6 +902,7 @@
     const form = event.currentTarget,
       values = new FormData(form),
       payload = { count: Number(values.get("count")) };
+    if (values.get("mode")) payload.mode = String(values.get("mode"));
     for (const key of ["start_term", "end_term"]) {
       const value = String(values.get(key) || "").trim();
       if (value) payload[key] = value;

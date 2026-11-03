@@ -377,6 +377,18 @@ def _validate_draws(draws):
         seen.add(term)
         clean.append({**draw, "draw_term": term, "numbers": sorted(nums)})
     clean.sort(key=lambda d: int(d["draw_term"]))
+    for before, after in zip(clean, clean[1:]):
+        if int(after["draw_term"]) != int(before["draw_term"]) + 1:
+            a = {
+                "target_term": before["draw_term"],
+                "draw_datetime": before.get("draw_datetime"),
+            }
+            b = {
+                "target_term": after["draw_term"],
+                "draw_datetime": after.get("draw_datetime"),
+            }
+            if not _consecutive(a, b):
+                raise ValueError("歷史期號有缺漏，請先補齊再執行逐期回測")
     timestamps = [_parse_datetime(d.get("draw_datetime")) for d in clean]
     for a, b in zip(timestamps, timestamps[1:]):
         if a is not None and b is not None and a >= b:
@@ -555,6 +567,30 @@ def walk_forward(
             "trained_through": data[latest_fit_index]["draw_term"],
             "features_through": data[index - 1]["draw_term"],
             "predictions": predictions,
+            "history_from": data[max(0, index - effective_window)]["draw_term"],
+            "history_to": data[index - 1]["draw_term"],
+            "history_count": min(index, effective_window),
+            "training_history_from": data[max(0, latest_fit_index + 1 - window)][
+                "draw_term"
+            ],
+            "training_history_to": data[latest_fit_index]["draw_term"],
+            "training_history_count": min(latest_fit_index + 1, window),
+            "feature_version": "bingo-features-causal-v1",
+            "model_version": getattr(suite, "history_digest", "fixed-causal-suite-v1"),
+            "model_scores": {name: list(vector) for name, vector in score_map.items()},
+            "fusion_scores": {
+                str(k): {
+                    method: fusions[str(k)][method]["scores"] for method in METHODS
+                }
+                for k in STARS
+            },
+            "fusion_weights": {
+                str(k): {
+                    method: fusions[str(k)][method]["weights"] for method in METHODS
+                }
+                for k in STARS
+            },
+            "is_live": False,
         }
         folds.append(fold)
         actual = set(data[index]["numbers"])

@@ -152,6 +152,10 @@ class SchedulingTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.runtime._auto_paused)
         self.clock.when += timedelta(hours=4)
         await self.runtime._maybe_train()
+        # A clock interval alone must not refit an unchanged data snapshot.
+        self.assertEqual(len(self.worker.calls), 2)
+        await self.seed(rows(121)[-1:])
+        await self.runtime._maybe_train()
         self.assertEqual(len(self.worker.calls), 3)
 
     async def test_retrain_trigger_counts_new_terms_after_history_hits_10000_cap(self):

@@ -28,6 +28,11 @@
       <span id="backtest-state" class="badge neutral">等待工作</span>
     </div>
     <form id="backtest-form" class="backtest-form">
+      <label>驗證模式<select name="mode">
+        <option value="nested" selected>雙層 Walk-forward</option>
+        <option value="fixed">固定視窗基準</option>
+        <option value="adaptive">智慧視窗比較</option>
+      </select></label>
       <label
         >最近期數<select name="count">
           <option value="100">100 期</option>
@@ -64,6 +69,8 @@
     </div>
     <div id="backtest-results"><p class="empty">尚無盲測報告</p></div>
   </section>
+  {% set intelligence_expanded = true %}
+  {% include "intelligence.html" %}
   <div class="analysis-grid">
     <section class="panel" aria-labelledby="frequency-title">
       <div class="panel-heading">
