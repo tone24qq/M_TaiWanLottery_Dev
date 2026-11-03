@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -12,13 +13,17 @@ class Settings(BaseSettings):
     )
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/taiwan_lottery"
-    DATABASE_URL_SYNC: str = "postgresql+psycopg2://postgres:password@localhost:5432/taiwan_lottery"
+    DATABASE_URL: str = (
+        "postgresql+asyncpg://postgres:password@localhost:5432/taiwan_lottery"
+    )
+    DATABASE_URL_SYNC: str = (
+        "postgresql+psycopg2://postgres:password@localhost:5432/taiwan_lottery"
+    )
 
     # App
-    APP_NAME: str = "Taiwan Lottery Predictor"
+    APP_NAME: str = "賓果研究系統"
     APP_ENV: str = "development"
-    DEBUG: bool = True
+    DEBUG: bool = False
     SECRET_KEY: str = "change-me"
 
     # ML
@@ -27,7 +32,17 @@ class Settings(BaseSettings):
 
     # Scraper
     SCRAPER_ENABLED: bool = True
-    BINGO_SCRAPE_URL: str = "https://www.taiwanlottery.com/lotto/bingobingo/history.aspx"
+    SYNC_INTERVAL_SECONDS: int = Field(45, ge=5, le=300)
+    CPU_THREADS: int = Field(2, ge=1, le=8)
+    TRAIN_WINDOW: int = Field(1000, ge=100, le=10000)
+    RETRAIN_MIN_DRAWS: int = Field(36, ge=1)
+    RETRAIN_INTERVAL_SECONDS: int = Field(10800, ge=60)
+    HISTORY_MIN_DRAWS: int = Field(100, ge=10, le=10000)
+    MAX_BACKFILL_DAYS: int = Field(31, ge=3, le=366)
+    AUTO_TRAIN: bool = True
+    BINGO_SCRAPE_URL: str = (
+        "https://www.taiwanlottery.com/lotto/bingobingo/history.aspx"
+    )
 
 
 settings = Settings()

@@ -10,12 +10,10 @@ from sqlalchemy.ext.asyncio import (
 
 from taiwan_lottery.config import settings
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    pool_size=5,
-    max_overflow=10,
-)
+engine_options = {"echo": settings.DEBUG, "pool_pre_ping": True}
+if not settings.DATABASE_URL.startswith("sqlite"):
+    engine_options.update(pool_size=3, max_overflow=2)
+engine = create_async_engine(settings.DATABASE_URL, **engine_options)
 
 async_session_factory = async_sessionmaker(
     engine,

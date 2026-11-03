@@ -1,423 +1,150 @@
 {% extends "base.html" %}
-{% block title %}統計分析 - {{ game }}{% endblock %}
-
+{% block title %}分析與盲測｜賓果研究室{% endblock %}
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <h1><i class="bi bi-bar-chart-line"></i> 統計分析</h1>
-        <div class="btn-group mb-3" role="group">
-            <a href="/analysis/lotto649" class="btn btn-outline-danger {% if game == 'lotto649' %}active{% endif %}">大樂透</a>
-            <a href="/analysis/super_lotto" class="btn btn-outline-primary {% if game == 'super_lotto' %}active{% endif %}">威力彩</a>
-            <a href="/analysis/daily_cash" class="btn btn-outline-success {% if game == 'daily_cash' %}active{% endif %}">今彩539</a>
-            <a href="/analysis/bingo" class="btn btn-outline-warning {% if game == 'bingo' %}active{% endif %}">賓果賓果</a>
-        </div>
+<div id="analysis" data-page="analysis">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">資料與證據</p>
+      <h1>分析與嚴格盲測</h1>
+      <p class="subtle">
+        歷史模擬與正式實戰分開呈現，所有特徵只使用目標期之前的資料。
+      </p>
     </div>
+    <a class="button secondary" href="/">回到即時總覽</a>
+  </div>
+  <div
+    id="message"
+    class="notice"
+    role="status"
+    aria-live="polite"
+    hidden
+  ></div>
+  <section class="panel" aria-labelledby="backtest-title">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">樣本外比較</p>
+        <h2 id="backtest-title">逐期向前盲測</h2>
+      </div>
+      <span id="backtest-state" class="badge neutral">等待工作</span>
+    </div>
+    <form id="backtest-form" class="backtest-form">
+      <label
+        >最近期數<select name="count">
+          <option value="100">100 期</option>
+          <option value="300">300 期</option>
+          <option value="1000">1000 期</option>
+        </select></label
+      ><label
+        >起始期號（選填）<input
+          name="start_term"
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]+"
+          placeholder="自訂區間起點" /></label
+      ><label
+        >結束期號（選填）<input
+          name="end_term"
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]+"
+          placeholder="自訂區間終點" /></label
+      ><button type="submit" class="button">開始盲測</button>
+    </form>
+    <p class="small subtle">
+      每個目標期都先預測，再揭露答案與更新模型；耗時模型依固定排程用過去資料重新訓練。盲測結果不會加入正式實戰榜。
+    </p>
+    <div id="backtest-progress-wrap" hidden>
+      <progress
+        id="backtest-progress"
+        max="100"
+        value="0"
+        aria-label="盲測進度"
+      ></progress>
+      <p id="backtest-detail" class="small subtle"></p>
+    </div>
+    <div id="backtest-results"><p class="empty">尚無盲測報告</p></div>
+  </section>
+  <div class="analysis-grid">
+    <section class="panel" aria-labelledby="frequency-title">
+      <div class="panel-heading">
+        <h2 id="frequency-title">冷熱號與間隔</h2>
+        <span id="analysis-samples" class="small subtle"></span>
+      </div>
+      <p class="small subtle">
+        出現頻率與未開間隔是歷史描述，無法單獨證明下期優勢。
+      </p>
+      <div class="table-scroll analysis-table">
+        <table>
+          <thead>
+            <tr>
+              <th>號碼</th>
+              <th>出現次數</th>
+              <th>出現率</th>
+              <th>未開間隔</th>
+            </tr>
+          </thead>
+          <tbody id="frequency">
+            <tr>
+              <td colspan="4" class="empty">載入中</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="full-ranking-title">
+      <div class="panel-heading">
+        <h2 id="full-ranking-title">完整 1～80 號綜合排名</h2>
+      </div>
+      <label class="inline-label"
+        >星數<select id="ranking-star">
+          <option value="3">三星</option>
+          <option value="4">四星</option>
+          <option value="5">五星</option>
+        </select></label
+      >
+      <div class="table-scroll analysis-table">
+        <table>
+          <thead>
+            <tr>
+              <th>排名</th>
+              <th>號碼</th>
+              <th>投票分數</th>
+              <th>模型支持數</th>
+            </tr>
+          </thead>
+          <tbody id="full-ranking">
+            <tr>
+              <td colspan="4" class="empty">尚無封存排名</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <div class="analysis-grid">
+    <section class="panel" aria-labelledby="distribution-title">
+      <h2 id="distribution-title">大小、單雙與號碼共現</h2>
+      <div id="distribution"><p class="empty">載入中</p></div>
+      <div id="cooccurrence" class="cooccurrence-list"></div>
+    </section>
+    <section class="panel" aria-labelledby="history-title">
+      <div class="panel-heading"><h2 id="history-title">最近開獎紀錄</h2></div>
+      <div class="table-scroll analysis-table">
+        <table>
+          <thead>
+            <tr>
+              <th>期號／時間</th>
+              <th>開獎號碼</th>
+            </tr>
+          </thead>
+          <tbody id="history">
+            <tr>
+              <td colspan="2" class="empty">載入中</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
 </div>
-
-<!-- Frequency Chart -->
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">號碼出現頻率</h5>
-        <div>
-            <select class="form-select form-select-sm d-inline-block w-auto" id="freq-window">
-                <option value="">全部期數</option>
-                <option value="10">最近10期</option>
-                <option value="30">最近30期</option>
-                <option value="50">最近50期</option>
-                <option value="100">最近100期</option>
-            </select>
-        </div>
-    </div>
-    <div class="card-body">
-        <canvas id="frequencyChart" height="120"></canvas>
-    </div>
-</div>
-
-<!-- Hot/Cold Numbers -->
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0"><i class="bi bi-fire"></i> 熱號 (Hot)</h5>
-            </div>
-            <div class="card-body" id="hot-numbers">載入中...</div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="bi bi-snow"></i> 冷號 (Cold)</h5>
-            </div>
-            <div class="card-body" id="cold-numbers">載入中...</div>
-        </div>
-    </div>
-</div>
-
-<!-- Gap Analysis -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">遺漏值分析 (Gap Analysis)</h5>
-    </div>
-    <div class="card-body">
-        <canvas id="gapChart" height="120"></canvas>
-        <div class="table-responsive mt-3">
-            <table class="table table-sm" id="gap-table">
-                <thead>
-                    <tr>
-                        <th>號碼</th>
-                        <th>目前遺漏</th>
-                        <th>平均遺漏</th>
-                        <th>最大遺漏</th>
-                        <th>遺漏比率</th>
-                    </tr>
-                </thead>
-                <tbody id="gap-tbody"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Pair Analysis -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">常見號碼配對 (Top 20)</h5>
-    </div>
-    <div class="card-body">
-        <div id="pairs-container">載入中...</div>
-    </div>
-</div>
-
-<!-- Bias Detection -->
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-search"></i> 偏差檢測 (Bias Detection)</h5>
-        <button class="btn btn-outline-primary btn-sm" onclick="loadBias()" id="bias-btn">
-            <i class="bi bi-arrow-clockwise"></i> 執行分析
-        </button>
-    </div>
-    <div class="card-body">
-        <p class="text-muted small mb-3">
-            透過卡方檢定、序列隨機性檢定、位置偏差分析，檢測開獎號碼是否偏離均勻隨機分佈。
-        </p>
-        <div id="bias-result">
-            <div class="text-center text-muted">點擊「執行分析」開始偏差檢測</div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_scripts %}
-<script src="/static/js/charts.js"></script>
-<script>
-const GAME = '{{ game }}';
-let freqChart = null;
-let gapChart = null;
-
-async function loadFrequency() {
-    const window = document.getElementById('freq-window').value;
-    let url = `/api/v1/stats/${GAME}/frequency`;
-    if (window) url += `?window=${window}`;
-
-    const resp = await fetch(url);
-    const data = await resp.json();
-
-    const labels = data.map(d => d.number);
-    const counts = data.map(d => d.count);
-
-    if (freqChart) freqChart.destroy();
-    freqChart = createBarChart('frequencyChart', labels, counts, '出現次數', getGameColor(GAME));
-}
-
-async function loadHotCold() {
-    const resp = await fetch(`/api/v1/stats/${GAME}/hot-cold?window=30`);
-    const data = await resp.json();
-
-    document.getElementById('hot-numbers').innerHTML = data.hot_numbers.map(n =>
-        `<span class="ball ball-red">${n.number}</span> <small class="text-muted">(${n.count}次, ${n.percentage}%)</small> `
-    ).join('') || '尚無資料';
-
-    document.getElementById('cold-numbers').innerHTML = data.cold_numbers.map(n =>
-        `<span class="ball ball-blue">${n.number}</span> <small class="text-muted">(${n.count}次, ${n.percentage}%)</small> `
-    ).join('') || '尚無資料';
-}
-
-async function loadGaps() {
-    const resp = await fetch(`/api/v1/stats/${GAME}/gaps`);
-    const data = await resp.json();
-
-    // Chart: top 20 by current gap
-    const top20 = data.slice(0, 20);
-    const labels = top20.map(d => d.number);
-    const gaps = top20.map(d => d.current_gap);
-
-    if (gapChart) gapChart.destroy();
-    gapChart = createBarChart('gapChart', labels, gaps, '目前遺漏期數', '#e74c3c');
-
-    // Table: top 30
-    document.getElementById('gap-tbody').innerHTML = data.slice(0, 30).map(d =>
-        `<tr class="${d.gap_ratio > 2 ? 'table-warning' : ''}">
-            <td><span class="ball ball-sm">${d.number}</span></td>
-            <td>${d.current_gap}</td>
-            <td>${d.average_gap}</td>
-            <td>${d.max_gap}</td>
-            <td>${d.gap_ratio}</td>
-        </tr>`
-    ).join('');
-}
-
-async function loadPairs() {
-    const resp = await fetch(`/api/v1/stats/${GAME}/pairs?top_n=20`);
-    const data = await resp.json();
-
-    document.getElementById('pairs-container').innerHTML = data.length > 0
-        ? data.map(p =>
-            `<span class="badge bg-secondary me-2 mb-2 fs-6">
-                ${p.pair[0]}-${p.pair[1]}
-                <small>(${p.count}次)</small>
-            </span>`
-        ).join('')
-        : '尚無資料';
-}
-
-document.getElementById('freq-window').addEventListener('change', loadFrequency);
-
-/* ── Bias Detection ──────────────────────────────────────── */
-
-let biasChiChart = null;
-
-async function loadBias() {
-    const btn = document.getElementById('bias-btn');
-    const resultDiv = document.getElementById('bias-result');
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 分析中...';
-    resultDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> 正在執行偏差檢測...</div>';
-
-    try {
-        const resp = await fetch(`/api/v1/stats/${GAME}/bias`);
-        const data = await resp.json();
-
-        if (!resp.ok) {
-            resultDiv.innerHTML = `<div class="alert alert-danger">${data.detail || '偏差檢測失敗'}</div>`;
-            return;
-        }
-
-        resultDiv.innerHTML = renderBiasReport(data);
-
-        // Render chi-square chart after DOM update
-        setTimeout(() => renderBiasChart(data), 100);
-    } catch (e) {
-        resultDiv.innerHTML = `<div class="alert alert-danger">錯誤: ${e.message}</div>`;
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> 執行分析';
-    }
-}
-
-function renderBiasReport(data) {
-    const overallP = data.overall_uniformity_p;
-    const overallSig = overallP < 0.05;
-    const overallBadge = overallSig
-        ? '<span class="badge bg-danger">偏離均勻分佈</span>'
-        : '<span class="badge bg-success">接近均勻分佈</span>';
-
-    // Significant biases list
-    let sigBiasHtml = '';
-    if (data.significant_biases.length > 0) {
-        const rows = data.significant_biases.map(b => {
-            const dirBadge = b.direction === 'over'
-                ? '<span class="badge bg-danger">偏高</span>'
-                : '<span class="badge bg-primary">偏低</span>';
-            return `<tr>
-                <td><span class="ball ball-sm">${b.number}</span></td>
-                <td>${dirBadge}</td>
-                <td>觀測 ${b.observed} / 期望 ${b.expected}</td>
-                <td>${b.z_score.toFixed(2)}</td>
-                <td class="text-danger">${b.p_value < 0.001 ? '< 0.001' : b.p_value.toFixed(4)}</td>
-            </tr>`;
-        }).join('');
-        sigBiasHtml = `
-            <h6 class="mt-3"><i class="bi bi-exclamation-triangle text-warning"></i> 顯著偏差號碼 (p < 0.05)</h6>
-            <div class="table-responsive">
-                <table class="table table-sm table-hover">
-                    <thead><tr><th>號碼</th><th>方向</th><th>觀測/期望</th><th>z-score</th><th>p-value</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>`;
-    } else {
-        sigBiasHtml = '<div class="alert alert-success mt-3 py-2"><i class="bi bi-check-circle"></i> 沒有發現個別號碼的顯著偏差</div>';
-    }
-
-    // Chi-square by segment
-    const chi2 = data.chi_square_results || {};
-    const segLabels = { '100': '近100期', '500': '近500期', '1000': '近1000期', 'all': '全部期數' };
-    let segRows = '';
-    for (const [seg, r] of Object.entries(chi2)) {
-        const sigIcon = r.is_significant
-            ? '<i class="bi bi-x-circle-fill text-danger"></i>'
-            : '<i class="bi bi-check-circle-fill text-success"></i>';
-        segRows += `<tr>
-            <td>${segLabels[seg] || seg}</td>
-            <td>${r.total_draws}</td>
-            <td>${r.chi2_statistic}</td>
-            <td>${r.p_value < 0.001 ? '< 0.001' : r.p_value.toFixed(4)}</td>
-            <td>${sigIcon} ${r.is_significant ? '顯著' : '不顯著'}</td>
-        </tr>`;
-    }
-
-    // Runs test summary
-    const runs = data.runs_test_results || {};
-    const runsSigCount = runs.significant_count || 0;
-
-    // Positional bias
-    const pos = data.positional_bias || {};
-    const posSigCount = pos.significant_count || 0;
-    let posRows = '';
-    if (pos.positions) {
-        for (const p of pos.positions) {
-            const sigIcon = p.is_significant
-                ? '<i class="bi bi-x-circle-fill text-danger"></i>'
-                : '<i class="bi bi-check-circle-fill text-success"></i>';
-            const topBiased = p.top_biased.slice(0, 3).map(t =>
-                `<span class="ball ball-sm ball-gray">${t.number}</span>`
-            ).join(' ');
-            posRows += `<tr>
-                <td>第${p.position}位</td>
-                <td>${p.chi2.toFixed(1)}</td>
-                <td>${p.p_value < 0.001 ? '< 0.001' : p.p_value.toFixed(4)}</td>
-                <td>${sigIcon}</td>
-                <td>${topBiased}</td>
-            </tr>`;
-        }
-    }
-
-    return `
-        <!-- 總覽 -->
-        <div class="row g-3 mb-3">
-            <div class="col-md-3">
-                <div class="card text-center h-100">
-                    <div class="card-body">
-                        <div class="small text-muted">整體均勻性</div>
-                        <div class="fs-4 fw-bold mt-1">${overallBadge}</div>
-                        <div class="small mt-1">p = ${overallP < 0.001 ? '< 0.001' : overallP.toFixed(4)}</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center h-100">
-                    <div class="card-body">
-                        <div class="small text-muted">偏差號碼數</div>
-                        <div class="fs-3 fw-bold mt-1 ${data.significant_biases.length > 0 ? 'text-warning' : 'text-success'}">${data.significant_biases.length}</div>
-                        <div class="small mt-1">共 ${data.total_draws} 期</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center h-100">
-                    <div class="card-body">
-                        <div class="small text-muted">序列隨機性</div>
-                        <div class="fs-3 fw-bold mt-1 ${runsSigCount > 3 ? 'text-warning' : 'text-success'}">${runsSigCount}</div>
-                        <div class="small mt-1">個號碼不隨機</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center h-100">
-                    <div class="card-body">
-                        <div class="small text-muted">位置偏差</div>
-                        <div class="fs-3 fw-bold mt-1 ${posSigCount > 2 ? 'text-warning' : 'text-success'}">${posSigCount}</div>
-                        <div class="small mt-1">個位置顯著</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 顯著偏差號碼 -->
-        ${sigBiasHtml}
-
-        <!-- 分段卡方檢定 -->
-        <div class="row g-3 mt-2">
-            <div class="col-md-6">
-                <h6>卡方檢定（分段）</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead><tr><th>區間</th><th>期數</th><th>Chi2</th><th>p-value</th><th>結果</th></tr></thead>
-                        <tbody>${segRows}</tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <h6>各號碼 z-score 分佈</h6>
-                <canvas id="biasChiChart" height="200"></canvas>
-            </div>
-        </div>
-
-        <!-- 位置偏差 -->
-        ${posRows ? `
-        <h6 class="mt-3">位置偏差（排序後各位置）</h6>
-        <div class="table-responsive">
-            <table class="table table-sm">
-                <thead><tr><th>位置</th><th>Chi2</th><th>p-value</th><th>顯著?</th><th>偏差最大號碼</th></tr></thead>
-                <tbody>${posRows}</tbody>
-            </table>
-        </div>` : ''}
-    `;
-}
-
-function renderBiasChart(data) {
-    const canvas = document.getElementById('biasChiChart');
-    if (!canvas) return;
-
-    // Get per-number z-scores from full history
-    const allData = data.chi_square_results?.all;
-    if (!allData || !allData.per_number) return;
-
-    const labels = allData.per_number.map(n => n.number);
-    const zScores = allData.per_number.map(n => n.z_score);
-    const colors = zScores.map(z =>
-        Math.abs(z) >= 1.96 ? (z > 0 ? '#dc354599' : '#0d6efd99') : '#6c757d66'
-    );
-    const borderColors = zScores.map(z =>
-        Math.abs(z) >= 1.96 ? (z > 0 ? '#dc3545' : '#0d6efd') : '#6c757d'
-    );
-
-    if (biasChiChart) biasChiChart.destroy();
-    biasChiChart = new Chart(canvas.getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'z-score',
-                data: zScores,
-                backgroundColor: colors,
-                borderColor: borderColors,
-                borderWidth: 1,
-            }],
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                annotation: {
-                    annotations: {
-                        upper: { type: 'line', yMin: 1.96, yMax: 1.96, borderColor: '#dc3545', borderDash: [5, 5], borderWidth: 1 },
-                        lower: { type: 'line', yMin: -1.96, yMax: -1.96, borderColor: '#0d6efd', borderDash: [5, 5], borderWidth: 1 },
-                    },
-                },
-            },
-            scales: {
-                y: { title: { display: true, text: 'z-score' } },
-                x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 50 } },
-            },
-        },
-    });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    loadFrequency();
-    loadHotCold();
-    loadGaps();
-    loadPairs();
-});
-</script>
 {% endblock %}

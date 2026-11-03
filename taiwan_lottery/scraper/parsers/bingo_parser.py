@@ -1,210 +1,263 @@
-"""Parser for 賓果賓果 (Bingo Bingo) — via Taiwan Lottery JSON API.
+"""Validated, TLS-verified official Taiwan Lottery Bingo data ingestion.
 
-Uses the official API at api.taiwanlottery.com/TLCAPIWeB/Lottery/BingoResult
-instead of HTML scraping, since the website is a Nuxt.js SPA.
+A day is returned atomically: a failed/malformed page never becomes a successful
+partial day. All dates use Asia/Taipei. Existing PostgreSQL columns store naive
+Taipei wall times, so timezone information is removed only at the ORM boundary.
 """
 
-from datetime import datetime, date, timedelta
+import asyncio
+from datetime import date, datetime, timedelta
+from typing import Callable
 
-import ssl
-
-import aiohttp
-from loguru import logger
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from taiwan_lottery.bingo_clock import DRAWS_PER_DAY, TAIPEI, now_taipei, scheduled_time
 from taiwan_lottery.db.crud import bingo as crud
 from taiwan_lottery.scraper.base import BaseScraper
 
 BINGO_API_URL = "https://api.taiwanlottery.com/TLCAPIWeB/Lottery/BingoResult"
-PAGE_SIZE = 100  # max per request
-
-
-def _compute_sectors(numbers: list[int]) -> tuple[int, int, int, int]:
-    """Count numbers in each sector (1-20, 21-40, 41-60, 61-80)."""
-    s1 = sum(1 for n in numbers if 1 <= n <= 20)
-    s2 = sum(1 for n in numbers if 21 <= n <= 40)
-    s3 = sum(1 for n in numbers if 41 <= n <= 60)
-    s4 = sum(1 for n in numbers if 61 <= n <= 80)
-    return s1, s2, s3, s4
-
-
-# Bingo draws every 5 minutes, 203 draws/day from 07:05 to 23:55
+PAGE_SIZE = 100
 BINGO_FIRST_DRAW_HOUR = 7
 BINGO_FIRST_DRAW_MINUTE = 5
 BINGO_INTERVAL_MINUTES = 5
+HEADERS = {
+    "User-Agent": "TaiwanBingoResearch/2.0",
+    "Accept": "application/json",
+    "Referer": "https://www.taiwanlottery.com/",
+    "Origin": "https://www.taiwanlottery.com",
+}
 
 
-def _parse_api_result(item: dict, draw_date: date, first_term: int) -> dict | None:
-    """Parse a single API result item into DB format.
+class BingoSourceError(RuntimeError):
+    """A day could not be completely retrieved or validated."""
 
-    first_term: the earliest drawTerm of this day, used to compute draw time.
-    """
-    try:
-        draw_term_raw = item.get("drawTerm", "")
-        draw_term = str(draw_term_raw)
-        if not draw_term:
-            return None
 
-        # bigShowOrder contains sorted numbers as strings like ["01", "02", ...]
-        big_show = item.get("bigShowOrder", [])
-        numbers = [int(n) for n in big_show if n.strip().isdigit()]
+def _compute_sectors(numbers: list[int]) -> tuple[int, int, int, int]:
+    return tuple(sum(low <= n <= low + 19 for n in numbers) for low in (1, 21, 41, 61))
 
-        if len(numbers) < 20:
-            return None
 
-        numbers = numbers[:20]
-        s1, s2, s3, s4 = _compute_sectors(numbers)
+def _valid_term(raw: object, draw_date: date) -> str:
+    if isinstance(raw, bool) or not str(raw).isdigit():
+        raise BingoSourceError("官方資料含無效期號")
+    term = str(raw)
+    prefix = str(draw_date.year - 1911)
+    if (
+        len(term) != len(prefix) + 6
+        or not term.startswith(prefix)
+        or int(term[-6:]) <= 0
+    ):
+        raise BingoSourceError("官方期號與開獎年度不符")
+    return term
 
-        # Compute draw time from term position within the day
-        # Each draw is 5 minutes apart, first draw at 09:00
-        draw_index = int(draw_term_raw) - first_term
-        base_time = datetime(
-            draw_date.year, draw_date.month, draw_date.day,
-            BINGO_FIRST_DRAW_HOUR, BINGO_FIRST_DRAW_MINUTE,
+
+def _official_datetime(item: dict, draw_date: date) -> datetime | None:
+    # dDate is presently 0001-01-01; date-only values do not establish draw time.
+    for key in ("drawDateTime", "drawDatetime", "openDateTime", "dDate"):
+        raw = item.get(key)
+        if not isinstance(raw, str) or not raw or raw.startswith("0001-"):
+            continue
+        try:
+            parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise BingoSourceError(f"官方 {key} 時間格式無效") from exc
+        stamp = (
+            parsed.replace(tzinfo=TAIPEI)
+            if parsed.tzinfo is None
+            else parsed.astimezone(TAIPEI)
         )
-        draw_datetime = base_time + timedelta(minutes=draw_index * BINGO_INTERVAL_MINUTES)
+        if stamp.hour == stamp.minute == stamp.second == 0:
+            continue
+        if (
+            stamp.date() != draw_date
+            or stamp.minute % 5
+            or stamp.second
+            or stamp.microsecond
+            or not (7, 5) <= (stamp.hour, stamp.minute) <= (23, 55)
+        ):
+            raise BingoSourceError("官方開獎時間不在當日排程內")
+        return stamp
+    return None
 
-        return {
-            "draw_term": draw_term,
-            "draw_datetime": draw_datetime,
-            "numbers": sorted(numbers),
-            "sum_total": sum(numbers),
-            "odd_count": sum(1 for n in numbers if n % 2 == 1),
-            "sector_1_count": s1,
-            "sector_2_count": s2,
-            "sector_3_count": s3,
-            "sector_4_count": s4,
-        }
-    except Exception as e:
-        logger.debug("Failed to parse bingo API item: {}", e)
-        return None
+
+def _parse_api_result(item: dict, draw_date: date, first_term: int) -> dict:
+    """Parse one result; first_term MUST come from a complete validated day."""
+    if not isinstance(item, dict):
+        raise BingoSourceError("官方開獎紀錄格式無效")
+    term = _valid_term(item.get("drawTerm"), draw_date)
+    raw_numbers = item.get("bigShowOrder")
+    if not isinstance(raw_numbers, list) or len(raw_numbers) != 20:
+        raise BingoSourceError(f"第 {term} 期開獎號碼不是 20 個")
+    if any(isinstance(n, bool) or not str(n).isdigit() for n in raw_numbers):
+        raise BingoSourceError(f"第 {term} 期含非整數號碼")
+    numbers = sorted(int(n) for n in raw_numbers)
+    if len(set(numbers)) != 20 or numbers[0] < 1 or numbers[-1] > 80:
+        raise BingoSourceError(f"第 {term} 期含重複或超出 1～80 號碼")
+    position = int(term) - first_term
+    try:
+        inferred = scheduled_time(draw_date, position)
+    except ValueError as exc:
+        raise BingoSourceError("官方當日期號範圍超出賓果排程") from exc
+    stamp = _official_datetime(item, draw_date) or inferred
+    # Complete day chronology gives an independent cross-check of official time.
+    if stamp != inferred:
+        raise BingoSourceError(f"第 {term} 期時間與完整當日期序不符")
+    sectors = _compute_sectors(numbers)
+    return {
+        "draw_term": term,
+        "draw_datetime": stamp.replace(tzinfo=None),
+        "numbers": numbers,
+        "sum_total": sum(numbers),
+        "odd_count": sum(n % 2 for n in numbers),
+        **{f"sector_{i + 1}_count": count for i, count in enumerate(sectors)},
+    }
 
 
 class BingoScraper(BaseScraper):
     game_type = "bingo"
 
-    def _make_session(self) -> tuple[aiohttp.TCPConnector, dict]:
-        """Create SSL-bypassed connector and headers."""
-        ssl_ctx = ssl.create_default_context()
-        ssl_ctx.check_hostname = False
-        ssl_ctx.verify_mode = ssl.CERT_NONE
-        conn = aiohttp.TCPConnector(ssl=ssl_ctx)
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "application/json",
-            "Referer": "https://www.taiwanlottery.com/",
-            "Origin": "https://www.taiwanlottery.com",
-        }
-        return conn, headers
+    def __init__(
+        self,
+        *,
+        transport: httpx.AsyncBaseTransport | None = None,
+        attempts: int = 3,
+        request_timeout: float = 12.0,
+        retry_delay: float = 0.5,
+        sleep: Callable = asyncio.sleep,
+    ):
+        if not 1 <= attempts <= 5:
+            raise ValueError("重試次數必須介於 1～5")
+        self.transport = transport
+        self.attempts = attempts
+        self.request_timeout = request_timeout
+        self.retry_delay = retry_delay
+        self.sleep = sleep
+
+    async def _request_page(
+        self, client: httpx.AsyncClient, target_date: date, page: int
+    ) -> tuple[int, list[dict]]:
+        response = await client.get(
+            BINGO_API_URL,
+            params={
+                "openDate": target_date.isoformat(),
+                "pageNum": page,
+                "pageSize": PAGE_SIZE,
+            },
+        )
+        response.raise_for_status()
+        try:
+            payload = response.json()
+            if not isinstance(payload, dict) or payload.get("rtCode") != 0:
+                raise BingoSourceError("官方 API 回報錯誤或缺少成功代碼")
+            content = payload.get("content")
+            if not isinstance(content, dict):
+                raise BingoSourceError("官方 API 缺少 content")
+            total = content.get("totalSize")
+            results = content.get("bingoQueryResult")
+            if (
+                isinstance(total, bool)
+                or not isinstance(total, int)
+                or not 0 <= total <= DRAWS_PER_DAY
+                or not isinstance(results, list)
+                or len(results) > PAGE_SIZE
+            ):
+                raise BingoSourceError("官方分頁資料格式無效")
+            return total, results
+        except (ValueError, TypeError) as exc:
+            raise BingoSourceError("官方 API 未傳回有效 JSON") from exc
+
+    async def _fetch_once(
+        self, client: httpx.AsyncClient, target_date: date
+    ) -> list[dict]:
+        total, items = await self._request_page(client, target_date, 1)
+        if total == 0:
+            if items:
+                raise BingoSourceError("官方分頁總數與內容不符")
+            return []
+        page_count = (total + PAGE_SIZE - 1) // PAGE_SIZE
+        for page in range(2, page_count + 1):
+            page_total, page_items = await self._request_page(client, target_date, page)
+            if page_total != total:
+                raise BingoSourceError("抓取期間官方期數改變，重新取得完整快照")
+            items.extend(page_items)
+        if len(items) != total:
+            raise BingoSourceError("官方分頁未完整取得")
+        terms = [
+            _valid_term(item.get("drawTerm"), target_date)
+            if isinstance(item, dict)
+            else ""
+            for item in items
+        ]
+        if "" in terms or len(set(terms)) != total:
+            raise BingoSourceError("官方分頁含重複或無效期號")
+        ordered = sorted(int(term) for term in terms)
+        if ordered != list(range(ordered[0], ordered[0] + total)):
+            raise BingoSourceError("官方當日期數不連續，拒絕推算錯誤開獎時間")
+        # A nonempty past day must contain its full scheduled day. For a current
+        # day, totalSize defines the complete set of already published results.
+        if target_date < now_taipei().date() and total != DRAWS_PER_DAY:
+            raise BingoSourceError(
+                f"{target_date} 歷史資料僅 {total}/{DRAWS_PER_DAY} 期，等待補齊"
+            )
+        parsed = sorted(
+            (_parse_api_result(item, target_date, ordered[0]) for item in items),
+            key=lambda item: item["draw_datetime"],
+        )
+        if parsed[-1]["draw_datetime"].replace(
+            tzinfo=TAIPEI
+        ) > now_taipei() + timedelta(seconds=30):
+            raise BingoSourceError("官方資料包含尚未到達的開獎時間")
+        return parsed
 
     async def _fetch_day(self, target_date: date) -> list[dict]:
-        """Fetch all bingo draws for a specific date via API.
-
-        Handles pagination — each page returns up to PAGE_SIZE results.
-        Determines the first term of the day to compute accurate draw times.
-        """
-        conn, headers = self._make_session()
-        raw_items: list[dict] = []
-
-        async with aiohttp.ClientSession(connector=conn) as client:
-            page = 1
-            while True:
-                params = {
-                    "openDate": target_date.strftime("%Y-%m-%d"),
-                    "pageNum": page,
-                    "pageSize": PAGE_SIZE,
-                }
+        if target_date > now_taipei().date():
+            raise BingoSourceError("不能查詢未來開獎資料")
+        last_error: Exception | None = None
+        # Verify certificates and respect the managed proxy/CA configuration.
+        async with httpx.AsyncClient(
+            headers=HEADERS,
+            timeout=httpx.Timeout(self.request_timeout),
+            transport=self.transport,
+            trust_env=True,
+            follow_redirects=False,
+        ) as client:
+            for attempt in range(self.attempts):
                 try:
-                    async with client.get(
-                        BINGO_API_URL,
-                        params=params,
-                        headers=headers,
-                        timeout=aiohttp.ClientTimeout(total=30),
-                    ) as resp:
-                        if resp.status != 200:
-                            logger.warning("Bingo API returned {}", resp.status)
-                            break
+                    # Total bound includes all pages, in addition to per-I/O bounds.
+                    async with asyncio.timeout(self.request_timeout * 4):
+                        return await self._fetch_once(client, target_date)
+                except (httpx.HTTPError, BingoSourceError, TimeoutError) as exc:
+                    last_error = exc
+                    if attempt + 1 < self.attempts:
+                        await self.sleep(self.retry_delay * 2**attempt)
+        raise BingoSourceError(
+            f"{target_date} 官方資料同步失敗（已重試 {self.attempts} 次）：{last_error}"
+        ) from last_error
 
-                        data = await resp.json()
-                        content = data.get("content", {})
-                        results = content.get("bingoQueryResult", [])
-                        total_size = content.get("totalSize") or 0
+    fetch_day = _fetch_day
 
-                        raw_items.extend(results)
-
-                        # Check if we need more pages
-                        if len(results) < PAGE_SIZE or len(raw_items) >= total_size:
-                            break
-                        page += 1
-
-                except Exception as e:
-                    logger.warning("Bingo API error for {} page {}: {}", target_date, page, e)
-                    break
-
-        if not raw_items:
-            return []
-
-        # Find the first (smallest) term of the day to compute draw times
-        first_term = min(item.get("drawTerm", 0) for item in raw_items)
-
-        all_draws = []
-        for item in raw_items:
-            parsed = _parse_api_result(item, target_date, first_term)
-            if parsed:
-                all_draws.append(parsed)
-
+    async def fetch_days(self, start: date, end: date) -> list[dict]:
+        if start > end or (end - start).days > 366:
+            raise ValueError("查詢區間必須為 1～367 天")
+        all_draws: list[dict] = []
+        current = start
+        while current <= end:
+            all_draws.extend(await self._fetch_day(current))
+            current += timedelta(days=1)
         return all_draws
 
     async def fetch_latest(self, session: AsyncSession) -> int:
-        """Fetch today's bingo draws."""
-        today = date.today()
+        today = now_taipei().date()
         draws = await self._fetch_day(today)
         if not draws:
-            # Try yesterday if today has no data yet
-            yesterday = today - timedelta(days=1)
-            draws = await self._fetch_day(yesterday)
-
-        if not draws:
-            logger.info("No bingo draws found for today/yesterday")
-            return 0
-
+            draws = await self._fetch_day(today - timedelta(days=1))
         return await crud.bulk_upsert(session, draws)
 
-    async def fetch_by_month(
-        self, session: AsyncSession, year: int, month: int
-    ) -> int:
-        """Fetch bingo draws for a month by iterating dates.
-
-        year: ROC year (民國年)
-        """
-        ad_year = year + 1911
-        total_inserted = 0
-
-        start = date(ad_year, month, 1)
-        if month == 12:
-            end = date(ad_year + 1, 1, 1) - timedelta(days=1)
-        else:
-            end = date(ad_year, month + 1, 1) - timedelta(days=1)
-
-        # Don't go past today
-        today = date.today()
-        if end > today:
-            end = today
-
-        current = start
-        while current <= end:
-            try:
-                draws = await self._fetch_day(current)
-                if draws:
-                    inserted = await crud.bulk_upsert(session, draws)
-                    total_inserted += inserted
-                    if inserted > 0:
-                        logger.info(
-                            "[bingo] {}: {} draws inserted",
-                            current, inserted,
-                        )
-            except Exception as e:
-                logger.warning("Bingo fetch failed for {}: {}", current, e)
-            current += timedelta(days=1)
-
-        return total_inserted
+    async def fetch_by_month(self, session: AsyncSession, year: int, month: int) -> int:
+        start = date(year + 1911, month, 1)
+        next_month = date(start.year + (month == 12), month % 12 + 1, 1)
+        end = min(next_month - timedelta(days=1), now_taipei().date())
+        if start > end:
+            return 0
+        # Commit policy belongs to the caller; errors propagate for rollback.
+        return await crud.bulk_upsert(session, await self.fetch_days(start, end))

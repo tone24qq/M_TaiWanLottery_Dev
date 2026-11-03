@@ -5,7 +5,7 @@ from itertools import combinations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from taiwan_lottery.db.crud import lotto649, super_lotto, daily_cash, bingo
+from taiwan_lottery.db.crud import bingo
 from taiwan_lottery.schemas.statistics import (
     NumberFrequency,
     HotColdAnalysis,
@@ -15,16 +15,10 @@ from taiwan_lottery.schemas.statistics import (
 
 # Game configuration
 GAME_CONFIG = {
-    "lotto649": {"max_num": 49, "pick_count": 6, "get_numbers": lambda d: d.numbers_sorted},
-    "super_lotto": {"max_num": 38, "pick_count": 6, "get_numbers": lambda d: d.zone1_sorted},
-    "daily_cash": {"max_num": 39, "pick_count": 5, "get_numbers": lambda d: d.numbers_sorted},
     "bingo": {"max_num": 80, "pick_count": 20, "get_numbers": lambda d: d.numbers},
 }
 
 CRUD_MAP = {
-    "lotto649": lotto649,
-    "super_lotto": super_lotto,
-    "daily_cash": daily_cash,
     "bingo": bingo,
 }
 

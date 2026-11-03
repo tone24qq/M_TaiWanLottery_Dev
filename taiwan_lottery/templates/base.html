@@ -1,80 +1,37 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}台灣彩券預測系統{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="/static/css/style.css" rel="stylesheet">
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="賓果賓果三星、四星、五星即時資料、事前封存、多模型投票與嚴格樣本外比較。"
+    />
+    <title>{% block title %}賓果研究室{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
     {% block extra_head %}{% endblock %}
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="bi bi-dice-5-fill"></i> 台灣彩券預測系統
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">首頁</a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            歷史記錄
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/history/lotto649">大樂透</a></li>
-                            <li><a class="dropdown-item" href="/history/super_lotto">威力彩</a></li>
-                            <li><a class="dropdown-item" href="/history/daily_cash">今彩539</a></li>
-                            <li><a class="dropdown-item" href="/history/bingo">賓果賓果</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            統計分析
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/analysis/lotto649">大樂透</a></li>
-                            <li><a class="dropdown-item" href="/analysis/super_lotto">威力彩</a></li>
-                            <li><a class="dropdown-item" href="/analysis/daily_cash">今彩539</a></li>
-                            <li><a class="dropdown-item" href="/analysis/bingo">賓果賓果</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/predictions">ML 預測</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/bingo">賓果追蹤</a>
-                    </li>
-                </ul>
-                <span class="navbar-text text-muted small">
-                    僅供教育娛樂用途
-                </span>
-            </div>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳至主要內容</a>
+    <header class="site-header">
+      <nav class="nav-shell" aria-label="主要導覽">
+        <a class="brand" href="/"
+          ><span class="brand-mark" aria-hidden="true">B</span
+          ><span>賓果研究室<small>台灣賓果賓果・三星至五星</small></span></a
+        >
+        <div class="nav-links">
+          <a href="/" data-nav="dashboard">即時總覽</a
+          ><a href="/analysis/bingo" data-nav="analysis">分析與盲測</a>
         </div>
-    </nav>
-
-    <main class="container py-4">
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="bg-dark text-light py-3 mt-5">
-        <div class="container text-center">
-            <p class="mb-1 small text-muted">
-                <i class="bi bi-exclamation-triangle"></i>
-                免責聲明：彩券開獎為隨機事件，本系統之統計分析與 ML 預測僅供教育及娛樂用途，不構成任何投注建議。
-            </p>
-            <p class="mb-0 small text-muted">&copy; 2024 Taiwan Lottery Predictor</p>
-        </div>
+      </nav>
+    </header>
+    <main id="main" class="page-shell">{% block content %}{% endblock %}</main>
+    <footer class="site-footer">
+      <span>依事前封存、事後結算的紀錄比較模型。</span
+      ><span>開獎為隨機事件；相對信心不代表中獎機率。</span>
     </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="/static/js/bingo.js" defer></script>
     {% block extra_scripts %}{% endblock %}
-</body>
+  </body>
 </html>

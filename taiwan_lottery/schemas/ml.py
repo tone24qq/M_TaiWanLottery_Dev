@@ -2,17 +2,18 @@
 
 from datetime import datetime
 from pydantic import BaseModel
+from typing import Literal
 
 
 class TrainRequest(BaseModel):
-    game_type: str
+    game_type: Literal["bingo"]
     model_type: str = "frequency"  # frequency / lstm / dqn / ensemble
-    pick_count: int | None = None  # Override default pick_count (e.g. bingo 3~10)
+    pick_count: Literal[3,4,5] | None = None
 
 
 class TrainResponse(BaseModel):
     model_id: int
-    game_type: str
+    game_type: Literal["bingo"]
     model_type: str
     version: str
     metrics: dict | None = None
@@ -28,7 +29,7 @@ class ConfidenceDetail(BaseModel):
 
 
 class PredictionResponse(BaseModel):
-    game_type: str
+    game_type: Literal["bingo"]
     model_type: str
     predicted_numbers: list[int]
     confidence_scores: list[float] | None = None
@@ -43,7 +44,7 @@ class ModelInfo(BaseModel):
     model_config = {"from_attributes": True}
 
     id: int
-    game_type: str
+    game_type: Literal["bingo"]
     model_type: str
     version: str
     is_active: bool
@@ -52,12 +53,12 @@ class ModelInfo(BaseModel):
 
 
 class EvaluateRequest(BaseModel):
-    game_type: str
+    game_type: Literal["bingo"]
     model_type: str | None = None
 
 
 class EvaluateResponse(BaseModel):
-    game_type: str
+    game_type: Literal["bingo"]
     model_type: str
     total_predictions: int
     average_hits: float
@@ -65,11 +66,11 @@ class EvaluateResponse(BaseModel):
 
 
 class BacktestRequest(BaseModel):
-    game_type: str
+    game_type: Literal["bingo"]
     model_type: str = "ensemble"
     test_size: int = 100
     compare_all: bool = False  # If True, backtest all models and compare
-    pick_count: int | None = None  # Override default pick_count
+    pick_count: Literal[3,4,5] | None = None
 
 
 class BacktestSummary(BaseModel):
@@ -103,7 +104,7 @@ class BacktestSummary(BaseModel):
 
 
 class BacktestResponse(BaseModel):
-    game_type: str
+    game_type: Literal["bingo"]
     backtest: BacktestSummary | None = None
     comparison: list[dict] | None = None
     message: str

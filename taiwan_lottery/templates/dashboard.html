@@ -1,250 +1,172 @@
 {% extends "base.html" %}
-{% block title %}首頁 - 台灣彩券預測系統{% endblock %}
-
+{% block title %}即時總覽｜賓果研究室{% endblock %}
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <h1><i class="bi bi-house-door"></i> 最新開獎結果</h1>
-        <p class="text-muted">自動從台灣彩券官網取得最新開獎號碼</p>
+<div id="dashboard" data-page="dashboard">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">即時研究系統</p>
+      <h1>賓果賓果總覽</h1>
+      <p class="subtle">自動同步、封存下一期，再以實際開獎驗證。</p>
     </div>
+    <span id="page-status" class="badge neutral" role="status">讀取狀態中</span>
+  </div>
+  <div
+    id="message"
+    class="notice"
+    role="status"
+    aria-live="polite"
+    hidden
+  ></div>
+  <section class="panel latest-panel" aria-labelledby="latest-title">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">01 / 最新開獎</p>
+        <h2 id="latest-title">等待開獎資料</h2>
+      </div>
+      <button class="button secondary compact" data-action="sync">
+        重新同步
+      </button>
+    </div>
+    <div class="latest-meta">
+      <span id="latest-date">—</span
+      ><span id="source-status" class="badge neutral">尚未連線</span>
+    </div>
+    <div
+      id="latest-numbers"
+      class="balls draw-balls"
+      aria-label="最新二十個開獎號碼"
+    >
+      <p class="empty">尚未取得資料</p>
+    </div>
+    <dl class="sync-details">
+      <div>
+        <dt>最後成功同步</dt>
+        <dd id="last-sync">—</dd>
+      </div>
+      <div>
+        <dt>資料延遲</dt>
+        <dd id="data-delay">—</dd>
+      </div>
+      <div>
+        <dt>下一期目標</dt>
+        <dd id="target-term">—</dd>
+      </div>
+      <div>
+        <dt>目標開獎時間</dt>
+        <dd id="target-time">—</dd>
+      </div>
+    </dl>
+    <p id="sync-error" class="error-detail" hidden></p>
+  </section>
+  <section class="panel" aria-labelledby="prediction-title">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">02 / 事前封存</p>
+        <h2 id="prediction-title">三星／四星／五星預測</h2>
+      </div>
+      <button class="button" data-action="predict">補觸發預測</button>
+    </div>
+    <div class="prediction-meta">
+      <span id="prediction-target">尚無封存預測</span
+      ><span id="archive-status" class="badge neutral">等待封存</span
+      ><span id="voting-method" class="subtle">—</span>
+    </div>
+    <div id="predictions" class="prediction-grid"></div>
+    <div class="footnote">
+      <span id="archive-time">封存後同一期號碼保持固定。</span
+      ><span>投票分數與相對信心只表示模型間的相對偏好。</span>
+    </div>
+  </section>
+  <div class="lower-grid">
+    <section class="panel" aria-labelledby="training-title">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">03 / 背景工作</p>
+          <h2 id="training-title">模型訓練</h2>
+        </div>
+        <span id="training-state" class="badge neutral">等待狀態</span>
+      </div>
+      <div class="actions">
+        <button class="button secondary compact" data-action="train">
+          開始訓練</button
+        ><button class="button secondary compact" data-action="train/stop">
+          停止訓練
+        </button>
+      </div>
+      <p id="training-detail" class="subtle">讀取模型狀態中</p>
+      <div id="training-progress-wrap" hidden>
+        <progress
+          id="training-progress"
+          max="100"
+          value="0"
+          aria-label="整體訓練進度"
+        ></progress>
+        <p id="training-work" class="small subtle"></p>
+      </div>
+      <div id="models" class="model-list">
+        <p class="empty">尚無模型狀態</p>
+      </div>
+    </section>
+    <section class="panel ranking-panel" aria-labelledby="ranking-title">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">04 / 實戰驗證</p>
+          <h2 id="ranking-title">即時排行榜</h2>
+        </div>
+        <a class="text-link" href="/analysis/bingo">詳細分析 →</a>
+      </div>
+      <div class="ranking-controls">
+        <div
+          id="star-tabs"
+          class="segmented"
+          role="group"
+          aria-label="排行榜星數"
+        >
+          <button class="active" data-star="3" aria-pressed="true">三星</button
+          ><button data-star="4" aria-pressed="false">四星</button
+          ><button data-star="5" aria-pressed="false">五星</button>
+        </div>
+        <div
+          id="board-tabs"
+          class="segmented"
+          role="group"
+          aria-label="排行榜樣本"
+        >
+          <button class="active" data-board="cumulative" aria-pressed="true">
+            累計實戰</button
+          ><button data-board="consecutive" aria-pressed="false">
+            連續實戰
+          </button>
+        </div>
+      </div>
+      <p id="strategy" class="small subtle">等待比較結果</p>
+      <div class="table-scroll">
+        <table class="rank-table">
+          <caption class="sr-only">
+            各模型事前封存實戰比較
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">模型／融合</th>
+              <th scope="col">期數</th>
+              <th scope="col">平均命中</th>
+              <th scope="col">全中率</th>
+              <th scope="col">投票權重</th>
+              <th scope="col">與隨機差距</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard">
+            <tr>
+              <td colspan="6" class="empty">尚無已結算實戰樣本</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="footnote">
+        少於 30 期：樣本不足；30～99 期：初步觀察；100
+        期以上仍須檢視統計不確定性。連續榜中斷不會刪除累計紀錄。
+      </p>
+    </section>
+  </div>
 </div>
-
-<!-- Lotto 649 -->
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card lottery-card" id="card-lotto649">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0"><i class="bi bi-circle-fill"></i> 大樂透 Lotto 6/49</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted" id="lotto649-term">載入中...</span>
-                    <span class="text-muted" id="lotto649-date"></span>
-                </div>
-                <div class="ball-container" id="lotto649-numbers">
-                    <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
-                </div>
-                <div class="mt-2">
-                    <span class="badge bg-secondary">特別號</span>
-                    <span class="ball ball-special" id="lotto649-special">-</span>
-                </div>
-                <div class="mt-2 small text-muted">
-                    <span id="lotto649-stats"></span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <a href="/history/lotto649" class="btn btn-sm btn-outline-danger">歷史記錄</a>
-                <a href="/analysis/lotto649" class="btn btn-sm btn-outline-danger">統計分析</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Super Lotto -->
-    <div class="col-md-6">
-        <div class="card lottery-card" id="card-super-lotto">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-lightning-fill"></i> 威力彩 Super Lotto</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted" id="super-lotto-term">載入中...</span>
-                    <span class="text-muted" id="super-lotto-date"></span>
-                </div>
-                <div class="mb-2">
-                    <small class="text-muted">第一區</small>
-                    <div class="ball-container" id="super-lotto-zone1">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                    </div>
-                </div>
-                <div>
-                    <small class="text-muted">第二區</small>
-                    <span class="ball ball-zone2" id="super-lotto-zone2">-</span>
-                </div>
-                <div class="mt-2 small text-muted">
-                    <span id="super-lotto-stats"></span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <a href="/history/super_lotto" class="btn btn-sm btn-outline-primary">歷史記錄</a>
-                <a href="/analysis/super_lotto" class="btn btn-sm btn-outline-primary">統計分析</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <!-- Daily Cash -->
-    <div class="col-md-6">
-        <div class="card lottery-card" id="card-daily-cash">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="bi bi-star-fill"></i> 今彩539</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted" id="daily-cash-term">載入中...</span>
-                    <span class="text-muted" id="daily-cash-date"></span>
-                </div>
-                <div class="ball-container" id="daily-cash-numbers">
-                    <div class="spinner-border spinner-border-sm text-success" role="status"></div>
-                </div>
-                <div class="mt-2 small text-muted">
-                    <span id="daily-cash-stats"></span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <a href="/history/daily_cash" class="btn btn-sm btn-outline-success">歷史記錄</a>
-                <a href="/analysis/daily_cash" class="btn btn-sm btn-outline-success">統計分析</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bingo -->
-    <div class="col-md-6">
-        <div class="card lottery-card" id="card-bingo">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0"><i class="bi bi-grid-3x3-gap-fill"></i> 賓果賓果</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted" id="bingo-term">載入中...</span>
-                    <span class="text-muted" id="bingo-date"></span>
-                </div>
-                <div class="ball-container ball-container-bingo" id="bingo-numbers">
-                    <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
-                </div>
-                <div class="mt-2 small text-muted">
-                    <span id="bingo-stats"></span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <a href="/bingo" class="btn btn-sm btn-outline-warning">即時追蹤</a>
-                <a href="/analysis/bingo" class="btn btn-sm btn-outline-warning">統計分析</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Actions -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-gear"></i> 快速操作</h5>
-            </div>
-            <div class="card-body">
-                <div class="btn-group" role="group">
-                    <button class="btn btn-outline-secondary" onclick="triggerScrape('lotto649')">
-                        抓取大樂透
-                    </button>
-                    <button class="btn btn-outline-secondary" onclick="triggerScrape('super_lotto')">
-                        抓取威力彩
-                    </button>
-                    <button class="btn btn-outline-secondary" onclick="triggerScrape('daily_cash')">
-                        抓取今彩539
-                    </button>
-                    <button class="btn btn-outline-secondary" onclick="triggerScrape('bingo')">
-                        抓取賓果賓果
-                    </button>
-                </div>
-                <div id="scrape-result" class="mt-2"></div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-async function loadLatest(game, prefix) {
-    try {
-        const resp = await fetch(`/api/v1/${game}/latest`);
-        if (!resp.ok) {
-            document.getElementById(`${prefix}-term`).textContent = '尚無資料';
-            document.getElementById(`${prefix}-numbers`) &&
-                (document.getElementById(`${prefix}-numbers`).innerHTML = '<span class="text-muted">請先抓取資料</span>');
-            return;
-        }
-        const data = await resp.json();
-        return data;
-    } catch (e) {
-        document.getElementById(`${prefix}-term`).textContent = '載入失敗';
-        return null;
-    }
-}
-
-function renderBall(num, cls = 'ball-normal') {
-    return `<span class="ball ${cls}">${num}</span>`;
-}
-
-async function initDashboard() {
-    // Lotto 649
-    const l649 = await loadLatest('lotto649', 'lotto649');
-    if (l649) {
-        document.getElementById('lotto649-term').textContent = `第 ${l649.draw_term} 期`;
-        document.getElementById('lotto649-date').textContent = l649.draw_date;
-        document.getElementById('lotto649-numbers').innerHTML =
-            l649.numbers_sorted.map(n => renderBall(n, 'ball-red')).join('');
-        document.getElementById('lotto649-special').textContent = l649.special_num;
-        document.getElementById('lotto649-stats').textContent =
-            `和值: ${l649.sum_total} | 奇數: ${l649.odd_count} | 跨度: ${l649.span}`;
-    }
-
-    // Super Lotto
-    const sl = await loadLatest('super_lotto', 'super-lotto');
-    if (sl) {
-        document.getElementById('super-lotto-term').textContent = `第 ${sl.draw_term} 期`;
-        document.getElementById('super-lotto-date').textContent = sl.draw_date;
-        document.getElementById('super-lotto-zone1').innerHTML =
-            sl.zone1_sorted.map(n => renderBall(n, 'ball-blue')).join('');
-        document.getElementById('super-lotto-zone2').textContent = sl.zone2_num;
-        document.getElementById('super-lotto-stats').textContent =
-            `和值: ${sl.sum_zone1} | 奇數: ${sl.odd_count} | 跨度: ${sl.span}`;
-    }
-
-    // Daily Cash
-    const dc = await loadLatest('daily_cash', 'daily-cash');
-    if (dc) {
-        document.getElementById('daily-cash-term').textContent = `第 ${dc.draw_term} 期`;
-        document.getElementById('daily-cash-date').textContent = dc.draw_date;
-        document.getElementById('daily-cash-numbers').innerHTML =
-            dc.numbers_sorted.map(n => renderBall(n, 'ball-green')).join('');
-        document.getElementById('daily-cash-stats').textContent =
-            `和值: ${dc.sum_total} | 奇數: ${dc.odd_count} | 跨度: ${dc.span}`;
-    }
-
-    // Bingo
-    const bg = await loadLatest('bingo', 'bingo');
-    if (bg) {
-        document.getElementById('bingo-term').textContent = `第 ${bg.draw_term} 期`;
-        document.getElementById('bingo-date').textContent = bg.draw_datetime;
-        document.getElementById('bingo-numbers').innerHTML =
-            bg.numbers.map(n => renderBall(n, 'ball-yellow')).join('');
-        document.getElementById('bingo-stats').textContent =
-            `和值: ${bg.sum_total} | 奇數: ${bg.odd_count} | 區間: ${bg.sector_1_count}-${bg.sector_2_count}-${bg.sector_3_count}-${bg.sector_4_count}`;
-    }
-}
-
-async function triggerScrape(gameType) {
-    const resultDiv = document.getElementById('scrape-result');
-    resultDiv.innerHTML = `<div class="alert alert-info">正在抓取 ${gameType} 資料...</div>`;
-    try {
-        const resp = await fetch('/api/v1/scraper/trigger', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({game_type: gameType}),
-        });
-        const data = await resp.json();
-        if (data.status === 'success') {
-            resultDiv.innerHTML = `<div class="alert alert-success">成功抓取 ${data.records_inserted} 筆 ${gameType} 資料</div>`;
-            initDashboard();
-        } else {
-            resultDiv.innerHTML = `<div class="alert alert-warning">${data.error_message || '抓取完成但無新資料'}</div>`;
-        }
-    } catch (e) {
-        resultDiv.innerHTML = `<div class="alert alert-danger">抓取失敗: ${e.message}</div>`;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', initDashboard);
-</script>
 {% endblock %}

@@ -1,0 +1,133 @@
+{
+  "timezone": "Asia/Taipei",
+  "latest_term": "115062180",
+  "latest_sync": "2026-11-03T12:13:41.870914+08:00",
+  "model_statuses": [
+    {
+      "name": "frequency",
+      "status": "ready",
+      "samples": 468,
+      "version": "bingo-causal-1",
+      "error": null,
+      "completed": 1,
+      "total": 1,
+      "percent": 100.0,
+      "updated_at": "2026-11-03T04:11:27.761519+00:00"
+    },
+    {
+      "name": "cdm",
+      "status": "ready",
+      "samples": 468,
+      "version": "bingo-causal-1",
+      "error": null,
+      "completed": 1,
+      "total": 1,
+      "percent": 100.0,
+      "updated_at": "2026-11-03T04:11:27.761524+00:00"
+    },
+    {
+      "name": "river",
+      "status": "ready",
+      "samples": 448,
+      "version": "bingo-causal-1",
+      "error": null,
+      "completed": 445,
+      "total": 445,
+      "percent": 100.0,
+      "updated_at": "2026-11-03T04:11:27.761503+00:00"
+    },
+    {
+      "name": "lightgbm",
+      "status": "ready",
+      "samples": 445,
+      "version": "bingo-causal-1",
+      "error": null,
+      "completed": 40,
+      "total": 40,
+      "percent": 100.0,
+      "updated_at": "2026-11-03T03:56:20.928396+00:00"
+    },
+    {
+      "name": "catboost",
+      "status": "ready",
+      "samples": 445,
+      "version": "bingo-causal-1",
+      "error": null,
+      "completed": 40,
+      "total": 40,
+      "percent": 100.0,
+      "updated_at": "2026-11-03T03:56:21.384306+00:00"
+    },
+    {
+      "name": "transformer",
+      "status": "ready",
+      "samples": 445,
+      "version": "bingo-causal-1",
+      "error": null,
+      "completed": 6,
+      "total": 6,
+      "percent": 100.0,
+      "updated_at": "2026-11-03T03:56:35.385966+00:00"
+    },
+    {
+      "name": "dqn",
+      "status": "ready",
+      "samples": 444,
+      "version": "bingo-causal-1",
+      "error": null,
+      "completed": 12,
+      "total": 12,
+      "percent": 100.0,
+      "updated_at": "2026-11-03T03:56:39.125071+00:00"
+    },
+    {
+      "name": "ensemble",
+      "status": "ready",
+      "samples": 444,
+      "version": "bingo-causal-1",
+      "error": null,
+      "completed": 1,
+      "total": 1,
+      "percent": 100.0,
+      "updated_at": "2026-11-03T04:11:27.761530+00:00"
+    }
+  ],
+  "archive_audit": [
+    {
+      "target_term": "115062178",
+      "forecasts": 18,
+      "archived_at": "2026-11-03 11:56:17.769214",
+      "target_time": "2026-11-03 12:00:00.000000",
+      "settled_forecasts": 18
+    },
+    {
+      "target_term": "115062179",
+      "forecasts": 36,
+      "archived_at": "2026-11-03 12:02:35.493850",
+      "target_time": "2026-11-03 12:05:00.000000",
+      "settled_forecasts": 36
+    },
+    {
+      "target_term": "115062180",
+      "forecasts": 36,
+      "archived_at": "2026-11-03 12:06:27.790171",
+      "target_time": "2026-11-03 12:10:00.000000",
+      "settled_forecasts": 36
+    },
+    {
+      "target_term": "115062181",
+      "forecasts": 36,
+      "archived_at": "2026-11-03 12:11:27.798121",
+      "target_time": "2026-11-03 12:15:00.000000",
+      "settled_forecasts": 0
+    }
+  ],
+  "restart_preserved_prediction": true,
+  "status_http_milliseconds": {
+    "requests": 50,
+    "median": 7.841279500098608,
+    "p95": 12.046945000065534,
+    "max": 13.367537999783963
+  },
+  "note": "Actual official-source live ledger. Initial archive used two baseline models; later archives used all eight real models. No historical predictions were inserted into the live ledger."
+}

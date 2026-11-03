@@ -6,18 +6,15 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 from taiwan_lottery.db.base import Base
+
 # Import all models so they register with Base.metadata
-from taiwan_lottery.db.models import (  # noqa: F401
-    Lotto649Draw,
-    SuperLottoDraw,
-    DailyCashDraw,
-    BingoDraw,
-    ScrapeLog,
-    MLModelRecord,
-    MLPrediction,
-)
+from taiwan_lottery.db.models import BingoDraw, ScrapeLog, MLModelRecord, MLPrediction
+from taiwan_lottery.db.models import bingo_research  # noqa: F401
+from taiwan_lottery.config import settings
+
 
 config = context.config
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL_SYNC.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
