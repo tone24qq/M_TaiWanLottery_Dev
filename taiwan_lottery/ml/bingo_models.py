@@ -262,19 +262,8 @@ class ModelSuite:
 
     def fit(self, progress: Callable | None = None) -> "ModelSuite":
         history = self.history
+        x, y = supervised_samples(history)
         matrix = draw_matrix(history)
-        if any(
-            name in self.enabled
-            for name in ("river", "lightgbm", "catboost", "transformer", "dqn")
-        ):
-            all_features = _features_from_matrix(matrix)
-            x, y = all_features[20:-1], matrix[20:]
-            current_features = all_features[-1]
-        else:
-            # Statistical-only fits have no supervised feature tensor to build.
-            x = np.empty((max(0, len(matrix) - 20), 0, 0), dtype=np.float32)
-            y = matrix[20:]
-            current_features = latest_features(matrix)
         minima = {
             "frequency": 10,
             "cdm": 10,
@@ -405,7 +394,9 @@ class ModelSuite:
                 # Validate the entire 80-element output before admitting a scorer.
                 if name != "ensemble":
                     normalize_scores(
-                        self._score_one(name, history, matrix, current_features)
+                        self._score_one(
+                            name, history, matrix, _features_from_matrix(matrix)[-1]
+                        )
                     )
                 total = max(1, self.records[name]["total"])
                 self._report(progress, name, total, total, "ready")
@@ -441,7 +432,9 @@ class ModelSuite:
                     for i, learner in enumerate(self.models[name])
                 ]
             )
-        if name in ("lightgbm", "catboost"):
+        if name == "catboost":
+            return self.models[name].predict_proba(row, thread_count=self.threads)[:, 1]
+        if name == "lightgbm":
             return self.models[name].predict_proba(row)[:, 1]
         if name in ("transformer", "dqn"):
             from taiwan_lottery.ml.bingo_neural import neural_scores
