@@ -38,6 +38,7 @@ from taiwan_lottery.ml.bingo_contexts import context_audit
 from taiwan_lottery.services.bingo_monitoring import PerformanceMonitor
 from taiwan_lottery.services.bingo_resources import ResourceSampler
 from taiwan_lottery.services.bingo_association_tracking import AssociationTracker
+from taiwan_lottery.services.bingo_neighbors import NeighborResearchCache
 
 
 class BingoRuntime:
@@ -85,6 +86,7 @@ class BingoRuntime:
         self.performance = PerformanceMonitor()
         self.families = ResearchStrategies()
         self.association_tracker = AssociationTracker()
+        self.neighbor_research = NeighborResearchCache()
         self._monitor_view = self.performance.status()
         self.resources = ResourceSampler()
         self._strategy_events = []
@@ -942,6 +944,12 @@ class BingoRuntime:
             ),
         )
 
+    def neighbors(self, *, window=1000, lag=1, snapshot=0, source=None):
+        """Schedule one lazy research bundle; never await statistics in HTTP."""
+        return self.neighbor_research.read(
+            self.snapshot, window=window, lag=lag, snapshot=snapshot, source=source
+        )
+
     def associations(self):
         """Serve only the immutable bundle; never mine rules in an HTTP request."""
         prediction = self.prediction or {}
@@ -1109,6 +1117,11 @@ class BingoRuntime:
 
     async def start_backtest(self, options):
         # A 1000-fold run needs a separate >=100-draw causal warmup.
+        mode = options.get("mode", "fixed")
+        if mode not in ("fixed", "adaptive", "nested", "associations", "neighbors"):
+            raise ValueError("未知回測模式")
+        if mode != "fixed" and options.get("count", 100) > 1000:
+            raise ValueError("巢狀比較每次最多1000期")
         if self.workers.busy:
             raise ValueError("背景工作執行中，請等待完成或停止訓練")
         requested = options.get("count", 100) + 100
@@ -1141,21 +1154,17 @@ class BingoRuntime:
                 else min(100000, requested + settings.TRAIN_WINDOW)
             )
         self.snapshot = await self.store.history(limit=10000)
-        mode = options.get("mode", "fixed")
-        if mode not in ("fixed", "adaptive", "nested", "associations"):
-            raise ValueError("未知回測模式")
-        if mode != "fixed" and options.get("count", 100) > 1000:
-            raise ValueError("巢狀比較每次最多1000期")
         result = await self.workers.start("backtest", copy.deepcopy(draws), options)
-        self._validation_at = self.clock().isoformat()
-        self._validation_source = draws[-1]["draw_term"] if draws else None
-        await self.store.save_research_state(
-            "validation",
-            {
-                "last_evaluation_at": self._validation_at,
-                "source_term": self._validation_source,
-            },
-        )
+        if mode != "neighbors":
+            self._validation_at = self.clock().isoformat()
+            self._validation_source = draws[-1]["draw_term"] if draws else None
+            await self.store.save_research_state(
+                "validation",
+                {
+                    "last_evaluation_at": self._validation_at,
+                    "source_term": self._validation_source,
+                },
+            )
         await self.store.save_evaluation(result["run_id"], "running", None)
         return result
 
@@ -1164,7 +1173,7 @@ class BingoRuntime:
         await self.store.save_evaluation(
             state["run_id"], state["state"], report, state.get("error")
         )
-        if report:
+        if report and report.get("mode") != "neighbor_walk_forward" and report.get("requested_mode") != "neighbors":
             async with self.lock:
                 before = self.adaptive.to_dict()
                 old_strategy = copy.deepcopy(self.strategy)
@@ -1184,6 +1193,10 @@ class BingoRuntime:
                     raise
 
     def _apply_strategy(self, report, restore=False):
+        if report.get("mode") == "neighbor_walk_forward" or report.get("requested_mode") == "neighbors":
+            # Research must not spend the production controller's alpha budget,
+            # advance its cooldown, change its status or acquire fusion weights.
+            return {"events": []}
         # Old fixed reports remain inspectable; they cannot bypass phase-two
         # nested confirmation, cooldown, repeated-search or shadow safeguards.
         outcome = {"events": []}
@@ -1285,4 +1298,5 @@ class BingoRuntime:
                 await self.task
             except asyncio.CancelledError:
                 pass
+        await self.neighbor_research.close()
         await self.workers.close()

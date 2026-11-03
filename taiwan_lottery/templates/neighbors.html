@@ -1,0 +1,50 @@
+<section id="neighbors" class="panel neighbor-panel" aria-labelledby="neighbor-title">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">獨立研究候選</p>
+      <h2 id="neighbor-title">鄰號／跨期轉移分析</h2>
+    </div>
+    <span id="neighbor-state" class="badge neutral" role="status" aria-live="polite">等待資料</span>
+  </div>
+  <p class="neighbor-warning">尚未證明優於隨機。歷史條件命中率不是下一期中獎機率；鄰號候選不會自動加入正式融合權重。</p>
+  <form id="neighbor-form" class="neighbor-controls" aria-label="鄰號分析條件">
+    <label for="neighbor-window">歷史視窗<select id="neighbor-window" name="window">
+      {% for n in [5, 10, 20, 30, 50, 100, 300, 500, 1000] %}
+      <option value="{{ n }}"{% if n == 1000 %} selected{% endif %}>最近 {{ n }} 期</option>
+      {% endfor %}
+    </select></label>
+    <label for="neighbor-lag">跨期距離<select id="neighbor-lag" name="lag">
+      {% for n in [1, 2, 3, 5, 10, 20] %}<option value="{{ n }}">後 {{ n }} 期</option>{% endfor %}
+    </select></label>
+    <label for="neighbor-snapshot">觀察時間<select id="neighbor-snapshot" name="snapshot">
+      <option value="0">最新一期</option><option value="5">前 5 期</option><option value="10">前 10 期</option><option value="20">前 20 期</option>
+    </select></label>
+    <label for="neighbor-source">來源號碼<select id="neighbor-source" name="source">
+      <option value="">本期 20 個號碼</option>
+      {% for n in range(1, 81) %}<option value="{{ n }}">{{ "%02d"|format(n) }} → 全部 80 號</option>{% endfor %}
+    </select></label>
+    <button type="submit" class="button secondary">更新分析</button>
+  </form>
+  <p id="neighbor-context" class="small subtle">選擇視窗、跨期距離與來源號碼，查看歷史關係。</p>
+  <div id="neighbor-error" class="notice neighbor-error" role="status" hidden></div>
+  <div id="neighbor-numbers" class="neighbor-number-list" aria-label="觀察期開出號碼"></div>
+  <div id="neighbor-changes" class="neighbor-changes" hidden></div>
+  <details class="neighbor-offsets" open>
+    <summary>各種位移的命中統計</summary>
+    <p class="small subtle">上升、下降與原號重開按位移分開；±1 為鄰接號。每個來源至目標關係的隨機理論基準皆為 25%；超出 1～80 的位移直接排除。</p>
+    <div id="neighbor-offset-statistics"><p class="empty">等待可用統計</p></div>
+  </details>
+  <h3 class="neighbor-relations-title">來源號碼與未來號碼的關係</h3>
+  <p class="small subtle">展開各號碼查看觸發、命中、信賴區間與完整搜尋集合的多重檢定校正；選擇單一來源可查全部 80 個目標號碼。</p>
+  <div id="neighbor-relations" class="neighbor-relations"><p class="empty">等待可用關係</p></div>
+  <details class="neighbor-method">
+    <summary>統計證據與獨立驗證</summary>
+    <div id="neighbor-methodology" class="small subtle"></div>
+    <p class="small subtle">顯示的單號區間為歷史條件率區間；多重校正涵蓋所有視窗、跨期距離與來源／目標。獨立驗證使用未參與發現的時間區段；短視窗或觸發不足不宣稱優勢。位移彙總包含同一期的相依事件，不能當作獨立二項樣本解讀。</p>
+  </details>
+  <div class="neighbor-backtest">
+    <h3>三星、四星、五星：實際樣本外比較</h3>
+    <p class="small subtle">在上方「逐期向前盲測」選擇「鄰號／跨期轉移比較」，可執行 100、300、1000 期。每期先凍結選號，再揭露答案；歷史回測不列入正式實戰。</p>
+    <div id="neighbor-backtest-results"><p class="empty">尚無鄰號回測報告</p></div>
+  </div>
+</section>

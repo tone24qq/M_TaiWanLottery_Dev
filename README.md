@@ -89,6 +89,21 @@ python -m uvicorn taiwan_lottery.main:app --host 127.0.0.1 --port 8000
 
 首頁／分析頁提供可展開證據與完整排名，`GET /api/v1/bingo/associations` 僅讀取既有封存，不在 HTTP 執行規則搜尋。分析頁可選「A／B／C 關聯比較」，使用背景 `mode=associations` 的嚴格 Walk-forward，與相同期數八模型／四投票比較並下載完整 gzip 紀錄。詳見 [關聯引擎驗收](docs/associations-acceptance.md) 與 [真實歷史比較](docs/associations-comparison.md)。
 
+## 鄰號／跨期轉移研究
+
+分析頁新增獨立鄰號區塊：1～80 全部來源與後果、原號及 ±1／±2／±3／±5、後 1／2／3／5／10／20 期、九種歷史視窗，以及最新／前 5／10／20 期截點。邊界不循環，缺期配對排除。畫面分別列出全部合法配對的歷史頻率，以及不共享開獎資料之推論配對的計數、25% 基準、區間、多重校正和獨立確認。
+
+`GET /api/v1/bingo/neighbors` 使用惰性、單程序單執行緒研究快取；`POST /api/v1/bingo/backtest` 增加 `mode=neighbors`，與八模型、四投票、ABC 及可重現隨機選號比較。鄰號不在正式 `MODEL_NAMES`，研究回測不消耗正式策略的驗證次數／冷卻，也不修改融合權重或回填實戰。
+
+真實 100／300／1000 期回測皆**尚未證明優於隨機**。完整結果、方法、效能及重現指令見 [鄰號引擎驗收](docs/neighbors-acceptance.md)；逐折決策與資料雜湊見 [研究報告](docs/validation/neighbors/manifest.json)。
+
+```bash
+python -m scripts.benchmark_neighbors --counts 100 300 1000 --threads 1 --output work/neighbors
+python -m scripts.validate_neighbor_ui --report work/neighbors/neighbor-walk-forward-100.json.gz --output work/neighbors-ui
+```
+
+重現腳本預設審計並重用專案已封存的歷史八模型／ABC 比較，本次重新逐折計算鄰號與隨機；加上 `--fresh-comparators` 可重新訓練全部比較模型。網頁啟動的鄰號回測一律重新計算比較模型，均不讀取現有正式模型回推歷史。
+
 ## 主要設定
 
 | 設定 | 預設 | 用途 |

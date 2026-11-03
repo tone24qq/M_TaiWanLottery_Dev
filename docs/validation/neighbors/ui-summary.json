@@ -1,0 +1,39 @@
+{
+  "scope": "Real analysis template, CSS and all component scripts; official neighbor data, real backtest and saved read-only existing API fixtures",
+  "source": "docs/validation/official-draws-20261103.json.gz",
+  "backtest_source": "work/neighbors-final/neighbor-walk-forward-100.json.gz",
+  "widths": [
+    {
+      "width": 320,
+      "checks": 47,
+      "page_errors": [],
+      "body_overflow": false,
+      "requests": 10,
+      "source_targets": 80,
+      "source_cards": 20,
+      "all_components": true
+    },
+    {
+      "width": 390,
+      "checks": 47,
+      "page_errors": [],
+      "body_overflow": false,
+      "requests": 9,
+      "source_targets": 80,
+      "source_cards": 20,
+      "all_components": true
+    },
+    {
+      "width": 1440,
+      "checks": 47,
+      "page_errors": [],
+      "body_overflow": false,
+      "requests": 10,
+      "source_targets": 80,
+      "source_cards": 20,
+      "all_components": true
+    }
+  ],
+  "checks": 141,
+  "passed": true
+}

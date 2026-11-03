@@ -33,6 +33,7 @@
         <option value="fixed">固定視窗基準</option>
         <option value="adaptive">智慧視窗比較</option>
         <option value="associations">A／B／C 關聯比較</option>
+        <option value="neighbors">鄰號／跨期轉移比較</option>
       </select></label>
       <label
         >最近期數<select name="count">
@@ -74,6 +75,7 @@
   {% include "intelligence.html" %}
   {% set associations_expanded = true %}
   {% include "associations.html" %}
+  {% include "neighbors.html" %}
   <div class="analysis-grid">
     <section class="panel" aria-labelledby="frequency-title">
       <div class="panel-heading">
@@ -157,4 +159,7 @@
     </section>
   </div>
 </div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="/static/js/neighbors.js" defer></script>
 {% endblock %}

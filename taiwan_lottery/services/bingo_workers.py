@@ -250,7 +250,16 @@ def _backtest(draws, options, threads, window, messages, directory=None, run_id=
         with threadpool_limits(limits=threads):
             options = dict(options)
             mode = options.pop("mode", "fixed")
-            if mode == "associations":
+            if mode == "neighbors":
+                from taiwan_lottery.ml.bingo_neighbor_evaluation import (
+                    neighbor_walk_forward,
+                )
+
+                report = neighbor_walk_forward(
+                    draws, threads=threads, window=min(1000, window), progress=progress, **options
+                )
+                report["requested_mode"] = mode
+            elif mode == "associations":
                 from taiwan_lottery.ml.bingo_association_evaluation import (
                     association_walk_forward,
                 )

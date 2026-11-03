@@ -20,7 +20,7 @@ def runtime(request: Request):
 
 
 class BacktestRequest(BaseModel):
-    mode: Literal["fixed", "adaptive", "nested", "associations"] = "fixed"
+    mode: Literal["fixed", "adaptive", "nested", "associations", "neighbors"] = "fixed"
     count: int = Field(100, ge=1, le=10000)
     start_term: str | None = Field(None, pattern=r"^\d{1,20}$")
     end_term: str | None = Field(None, pattern=r"^\d{1,20}$")
@@ -49,6 +49,21 @@ async def intelligence(request: Request):
 @router.get("/associations")
 async def associations(request: Request):
     return runtime(request).associations()
+
+
+@router.get("/neighbors")
+async def neighbors(
+    request: Request,
+    window: int = Query(1000),
+    lag: int = Query(1),
+    snapshot: int = Query(0),
+    source: int | None = Query(None, ge=1, le=80),
+):
+    from taiwan_lottery.services.bingo_neighbors import WINDOWS, LAGS, SNAPSHOTS
+
+    if window not in WINDOWS or lag not in LAGS or snapshot not in SNAPSHOTS:
+        raise HTTPException(422, "鄰號研究視窗、跨期距離或比較期數無效")
+    return runtime(request).neighbors(window=window, lag=lag, snapshot=snapshot, source=source)
 
 
 @router.get("/audit/{term}")
