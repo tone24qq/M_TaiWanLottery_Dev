@@ -1,40 +1,40 @@
 {
   "timezone": "Asia/Taipei",
-  "latest_term": "115062179",
-  "latest_sync": "2026-11-03T12:10:39.104925+08:00",
+  "latest_term": "115062180",
+  "latest_sync": "2026-11-03T12:13:41.870914+08:00",
   "model_statuses": [
     {
       "name": "frequency",
       "status": "ready",
-      "samples": 465,
+      "samples": 468,
       "version": "bingo-causal-1",
       "error": null,
       "completed": 1,
       "total": 1,
       "percent": 100.0,
-      "updated_at": "2026-11-03T03:56:18.024712+00:00"
+      "updated_at": "2026-11-03T04:11:27.761519+00:00"
     },
     {
       "name": "cdm",
       "status": "ready",
-      "samples": 465,
+      "samples": 468,
       "version": "bingo-causal-1",
       "error": null,
       "completed": 1,
       "total": 1,
       "percent": 100.0,
-      "updated_at": "2026-11-03T03:56:18.032436+00:00"
+      "updated_at": "2026-11-03T04:11:27.761524+00:00"
     },
     {
       "name": "river",
       "status": "ready",
-      "samples": 445,
+      "samples": 448,
       "version": "bingo-causal-1",
       "error": null,
       "completed": 445,
       "total": 445,
       "percent": 100.0,
-      "updated_at": "2026-11-03T03:56:20.458162+00:00"
+      "updated_at": "2026-11-03T04:11:27.761503+00:00"
     },
     {
       "name": "lightgbm",
@@ -89,7 +89,7 @@
       "completed": 1,
       "total": 1,
       "percent": 100.0,
-      "updated_at": "2026-11-03T03:56:39.201588+00:00"
+      "updated_at": "2026-11-03T04:11:27.761530+00:00"
     }
   ],
   "archive_audit": [
@@ -112,6 +112,13 @@
       "forecasts": 36,
       "archived_at": "2026-11-03 12:06:27.790171",
       "target_time": "2026-11-03 12:10:00.000000",
+      "settled_forecasts": 36
+    },
+    {
+      "target_term": "115062181",
+      "forecasts": 36,
+      "archived_at": "2026-11-03 12:11:27.798121",
+      "target_time": "2026-11-03 12:15:00.000000",
       "settled_forecasts": 0
     }
   ],
