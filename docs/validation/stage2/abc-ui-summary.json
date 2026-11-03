@@ -1,0 +1,845 @@
+{
+  "fixture_only": false,
+  "version": "bingo-associations-2",
+  "api": "http://127.0.0.1:8002",
+  "source_term": "115062234",
+  "target_term": "115062235",
+  "sealed_at": "2026-11-03T16:42:29.616560+08:00",
+  "observations": 1,
+  "candidates": [
+    {
+      "star": "3",
+      "candidate": "A",
+      "numbers": [
+        6,
+        3,
+        16
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 3,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "3",
+      "candidate": "B",
+      "numbers": [
+        6,
+        39,
+        21
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 2,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "3",
+      "candidate": "C",
+      "numbers": [
+        6,
+        3,
+        63
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 0,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "4",
+      "candidate": "A",
+      "numbers": [
+        6,
+        3,
+        16,
+        32
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 3,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "4",
+      "candidate": "B",
+      "numbers": [
+        6,
+        39,
+        21,
+        41
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 2,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "4",
+      "candidate": "C",
+      "numbers": [
+        6,
+        3,
+        63,
+        20
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 0,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "5",
+      "candidate": "A",
+      "numbers": [
+        6,
+        3,
+        16,
+        32,
+        48
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 3,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "5",
+      "candidate": "B",
+      "numbers": [
+        6,
+        39,
+        21,
+        41,
+        1
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 2,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    },
+    {
+      "star": "5",
+      "candidate": "C",
+      "numbers": [
+        6,
+        3,
+        63,
+        20,
+        33
+      ],
+      "score_count": 80,
+      "ranking_count": 80,
+      "evidence_count": 0,
+      "label": "目前沒有可靠關聯，僅供探索",
+      "history": {
+        "from": "115061713",
+        "to": "115062234",
+        "count": 522
+      },
+      "version": "bingo-associations-2",
+      "strategy_proven": false
+    }
+  ],
+  "widths": [
+    1440,
+    390,
+    320
+  ],
+  "pages": [
+    "/",
+    "/analysis/bingo"
+  ],
+  "browser_checks": [
+    {
+      "path": "/",
+      "width": 1440,
+      "stars": [
+        {
+          "star": "3",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "4",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "5",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32,
+                48
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41,
+                1
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20,
+                33
+              ]
+            }
+          ],
+          "document_overflow": false
+        }
+      ]
+    },
+    {
+      "path": "/",
+      "width": 390,
+      "stars": [
+        {
+          "star": "3",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "4",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "5",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32,
+                48
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41,
+                1
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20,
+                33
+              ]
+            }
+          ],
+          "document_overflow": false
+        }
+      ]
+    },
+    {
+      "path": "/",
+      "width": 320,
+      "stars": [
+        {
+          "star": "3",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "4",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "5",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32,
+                48
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41,
+                1
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20,
+                33
+              ]
+            }
+          ],
+          "document_overflow": false
+        }
+      ]
+    },
+    {
+      "path": "/analysis/bingo",
+      "width": 1440,
+      "stars": [
+        {
+          "star": "3",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "4",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "5",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32,
+                48
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41,
+                1
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20,
+                33
+              ]
+            }
+          ],
+          "document_overflow": false
+        }
+      ]
+    },
+    {
+      "path": "/analysis/bingo",
+      "width": 390,
+      "stars": [
+        {
+          "star": "3",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "4",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "5",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32,
+                48
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41,
+                1
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20,
+                33
+              ]
+            }
+          ],
+          "document_overflow": false
+        }
+      ]
+    },
+    {
+      "path": "/analysis/bingo",
+      "width": 320,
+      "stars": [
+        {
+          "star": "3",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "4",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20
+              ]
+            }
+          ],
+          "document_overflow": false
+        },
+        {
+          "star": "5",
+          "cards": [
+            {
+              "candidate": "A",
+              "numbers": [
+                6,
+                3,
+                16,
+                32,
+                48
+              ]
+            },
+            {
+              "candidate": "B",
+              "numbers": [
+                6,
+                39,
+                21,
+                41,
+                1
+              ]
+            },
+            {
+              "candidate": "C",
+              "numbers": [
+                6,
+                3,
+                63,
+                20,
+                33
+              ]
+            }
+          ],
+          "document_overflow": false
+        }
+      ]
+    }
+  ],
+  "pageerrors": [],
+  "request_failures": [],
+  "findings": [],
+  "writes": []
+}

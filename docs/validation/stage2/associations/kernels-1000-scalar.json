@@ -1,0 +1,11 @@
+{
+  "count": 1000,
+  "variant": "scalar",
+  "wall_seconds": 3.3544824340024206,
+  "cpu_seconds": 3.3322663970000006,
+  "cpu_percent": 99.33772087231017,
+  "peak_rss_mib": 78.43359375,
+  "target_rows_per_second": 298.1085814799883,
+  "result_sha256": "9e5b1e7753460b3cc1cc5089ab9dcff31b80cb88e65e9c0f8f7edec202a442ca",
+  "method": "all same-draw80x80 counts plus all20 lagged80x80 counts; gap crossings excluded"
+}

@@ -1,0 +1,18 @@
+{
+  "engine_version": "bingo-associations-2",
+  "engine_source_sha256": "d56a87fe5b491cf445ba3fe462f9d4e15b128ba29cc7f6cbfadfc1b84e715c1c",
+  "files": {
+    "abc-summary-300.json": "06e01d87b0bc5fd2dc70b1cf4d013a02c60d69527a0b0fbddea5a624827918af",
+    "kernels-300-vectorized.json": "69641865b51b93c300ba982bcfce76e28679c8488936408172a7674dc39fedf9",
+    "abc-decisions-100.jsonl.gz": "111c36cefdd26377379a51b4412fb956287ed77773c4b851f4fa2cf8477a2fb3",
+    "abc-summary-100.json": "0ad509270313d7db988ce2adbab8ecb37947d0b4baaf92467bbe36e815075e9e",
+    "kernels-100-vectorized.json": "80d39a9bb3755392a705cc1d78892ca71f39c3a088490f8d7b2c09b4e4bc9716",
+    "abc-decisions-1000.jsonl.gz": "d10385f5a94d1b7cbb6c4208579464109aef60f9ccfcd12ead4379c8e32d2b98",
+    "abc-summary-1000.json": "3402ea55b17d4eb9048d3991527cbb28b18b7e14cf6ee0ada7c225bcc7e04f07",
+    "abc-decisions-300.jsonl.gz": "6f25dd7f4b9d06dec3919027b871ecd11025b5b4095c6be191b8ed0116b9663e",
+    "kernels-100-scalar.json": "d32233013170c6b2cbd4b39cf22b14eed4bab6ddeba8751f89dfd498e14905c4",
+    "kernels-1000-scalar.json": "0acdb53d3f4cfa280ca18da04610fd5548323c6f7ddcf01c908c4faf9812086a",
+    "kernels-300-scalar.json": "ba51feb5ac51aefbae83e5eb3b4234561f3ac1d21ea3ab3577c80e0fab7b4d61",
+    "kernels-1000-vectorized.json": "a80644522fc5a2673bcf76108c8801da49c00b86b7cd92efa6b7bf3710d47789"
+  }
+}

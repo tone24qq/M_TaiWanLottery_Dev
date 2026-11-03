@@ -1,0 +1,33 @@
+{
+  "fixture_only": false,
+  "api": "http://127.0.0.1:8002",
+  "pid": 25912,
+  "tested_pages": [
+    "/",
+    "/analysis/bingo"
+  ],
+  "widths": [
+    1440,
+    390,
+    320
+  ],
+  "stars": [
+    3,
+    4,
+    5
+  ],
+  "strategy_cards": 3,
+  "strategies": [
+    "Today Only 當日資料",
+    "Historical 跨日歷史",
+    "Adaptive Hybrid 自適應混合"
+  ],
+  "all_number_counts_match_star": true,
+  "all_numbers_unique_in_1_to_80": true,
+  "page_overflow": false,
+  "card_overflow": false,
+  "javascript_errors": [],
+  "request_failures": [],
+  "findings": [],
+  "actions": "Read-only UI and GET endpoints; no train/backtest/prediction triggered."
+}

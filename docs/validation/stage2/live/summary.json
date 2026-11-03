@@ -1,0 +1,332 @@
+{
+  "captured_at": "2026-11-03T17:29:52.819364+08:00",
+  "source": "actual official API through live FastAPI, no fixture source",
+  "database_isolated_copy": true,
+  "original_formal_hashes_preserved": true,
+  "original_bundle_hashes_preserved": true,
+  "source_term": "115062243",
+  "next_target": "115062244",
+  "research_paired_targets": 27,
+  "association_paired_targets": 10,
+  "formal_strategy": {
+    "3": "historical",
+    "4": "historical",
+    "5": "historical"
+  },
+  "targets": [
+    {
+      "target_term": "115062216",
+      "created_at": "2026-11-03 15:06:42.477442",
+      "target_time": "2026-11-03 15:10:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062217",
+      "created_at": "2026-11-03 15:11:05.394117",
+      "target_time": "2026-11-03 15:15:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062218",
+      "created_at": "2026-11-03 15:16:20.418758",
+      "target_time": "2026-11-03 15:20:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062219",
+      "created_at": "2026-11-03 15:22:19.777354",
+      "target_time": "2026-11-03 15:25:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062220",
+      "created_at": "2026-11-03 15:27:37.003564",
+      "target_time": "2026-11-03 15:30:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062221",
+      "created_at": "2026-11-03 15:32:06.424153",
+      "target_time": "2026-11-03 15:35:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062222",
+      "created_at": "2026-11-03 15:37:21.074919",
+      "target_time": "2026-11-03 15:40:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062223",
+      "created_at": "2026-11-03 15:41:51.065126",
+      "target_time": "2026-11-03 15:45:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062224",
+      "created_at": "2026-11-03 15:47:07.465639",
+      "target_time": "2026-11-03 15:50:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062225",
+      "created_at": "2026-11-03 15:51:36.093052",
+      "target_time": "2026-11-03 15:55:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062226",
+      "created_at": "2026-11-03 15:56:06.939503",
+      "target_time": "2026-11-03 16:00:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062227",
+      "created_at": "2026-11-03 16:02:05.993179",
+      "target_time": "2026-11-03 16:05:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062228",
+      "created_at": "2026-11-03 16:07:15.622049",
+      "target_time": "2026-11-03 16:10:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062229",
+      "created_at": "2026-11-03 16:11:53.319562",
+      "target_time": "2026-11-03 16:15:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062230",
+      "created_at": "2026-11-03 16:17:01.314176",
+      "target_time": "2026-11-03 16:20:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062231",
+      "created_at": "2026-11-03 16:21:31.656697",
+      "target_time": "2026-11-03 16:25:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062232",
+      "created_at": "2026-11-03 16:26:45.753384",
+      "target_time": "2026-11-03 16:30:00.000000",
+      "families": 9,
+      "associations": 0,
+      "settled_families": 9,
+      "settled_associations": 0,
+      "association_versions": []
+    },
+    {
+      "target_term": "115062234",
+      "created_at": "2026-11-03 16:39:09.697516",
+      "target_time": "2026-11-03 16:40:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 9,
+      "settled_associations": 9,
+      "association_versions": [
+        "bingo-associations-1"
+      ]
+    },
+    {
+      "target_term": "115062235",
+      "created_at": "2026-11-03 16:42:29.616560",
+      "target_time": "2026-11-03 16:45:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 9,
+      "settled_associations": 9,
+      "association_versions": [
+        "bingo-associations-2"
+      ]
+    },
+    {
+      "target_term": "115062236",
+      "created_at": "2026-11-03 16:46:55.269023",
+      "target_time": "2026-11-03 16:50:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 9,
+      "settled_associations": 9,
+      "association_versions": [
+        "bingo-associations-2"
+      ]
+    },
+    {
+      "target_term": "115062237",
+      "created_at": "2026-11-03 16:52:08.725378",
+      "target_time": "2026-11-03 16:55:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 9,
+      "settled_associations": 9,
+      "association_versions": [
+        "bingo-associations-2"
+      ]
+    },
+    {
+      "target_term": "115062238",
+      "created_at": "2026-11-03 16:57:24.481868",
+      "target_time": "2026-11-03 17:00:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 9,
+      "settled_associations": 9,
+      "association_versions": [
+        "bingo-associations-2"
+      ]
+    },
+    {
+      "target_term": "115062239",
+      "created_at": "2026-11-03 17:01:59.374299",
+      "target_time": "2026-11-03 17:05:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 9,
+      "settled_associations": 9,
+      "association_versions": [
+        "bingo-associations-2"
+      ]
+    },
+    {
+      "target_term": "115062240",
+      "created_at": "2026-11-03 17:06:25.678517",
+      "target_time": "2026-11-03 17:10:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 9,
+      "settled_associations": 9,
+      "association_versions": [
+        "bingo-associations-2"
+      ]
+    },
+    {
+      "target_term": "115062241",
+      "created_at": "2026-11-03 17:11:39.483137",
+      "target_time": "2026-11-03 17:15:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 9,
+      "settled_associations": 9,
+      "association_versions": [
+        "bingo-associations-2"
+      ]
+    },
+    {
+      "target_term": "115062242",
+      "created_at": "2026-11-03 17:16:53.517399",
+      "target_time": "2026-11-03 17:20:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 9,
+      "settled_associations": 9,
+      "association_versions": [
+        "bingo-associations-2"
+      ]
+    },
+    {
+      "target_term": "115062243",
+      "created_at": "2026-11-03 17:21:32.268574",
+      "target_time": "2026-11-03 17:25:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 9,
+      "settled_associations": 9,
+      "association_versions": [
+        "bingo-associations-2"
+      ]
+    },
+    {
+      "target_term": "115062244",
+      "created_at": "2026-11-03 17:26:38.733423",
+      "target_time": "2026-11-03 17:30:00.000000",
+      "families": 9,
+      "associations": 9,
+      "settled_families": 0,
+      "settled_associations": 0,
+      "association_versions": [
+        "bingo-associations-2"
+      ]
+    }
+  ],
+  "minimum_family_targets": 300,
+  "minimum_family_days": 3,
+  "all_scores80": true,
+  "all_sealed_before_draw": true,
+  "all_observed_hits_recomputed": true,
+  "all_today_source_dates_valid": true,
+  "long_run_complete": false,
+  "notes": [
+    "Development v1 association forecast remains immutable; subsequent v2 uses shared global holdout.",
+    "These are short prospective operational samples, not evidence of predictive superiority.",
+    "The local service is a development verification process, not a durable production deployment."
+  ]
+}
