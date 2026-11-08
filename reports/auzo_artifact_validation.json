@@ -1,0 +1,8 @@
+{
+  "rows": 2820000,
+  "targets": 10000,
+  "candidates_per_target": 282,
+  "duplicate_predictions": 0,
+  "outcome_mismatches": 0,
+  "passed": true
+}

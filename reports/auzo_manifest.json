@@ -1,0 +1,24 @@
+{
+  "files": {
+    "taiwan_lottery/ml/auzo_features.py": "c8c85f9d1561826630a5c5b9fb5621f9aebe631be8d7e7be36374d307311bac8",
+    "scripts/bingo_auzo_backtest.py": "479d005b8e58ec07bddad252a595ad117176c995de029ebb8ce067f73f3e386d",
+    "scripts/finalize_auzo_report.py": "73b2736b0d98e5dff0b3ddd542bce610af314eeaddb972fa84e7d344624e4c41",
+    "scripts/auzo_conditional_evidence.py": "afb89c159a887597eedea7244f4aee797ccd033d90f7b3be69dfb8572310792b",
+    "scripts/fetch_auzo_official_history.py": "f1307c9e214dfa7dd83e5ebfbff9782e795ca0432a3a0307216615a0ae8c9d9f",
+    "experiments/auzo_official_history.json.gz": "d7083eb1417d484da4ab5e10267fd74d28a7ff79e19afeca10b2a68089b6deb3",
+    "experiments/bingo_auzo.csv.gz": "6482ddecabae1da96956ec998dd375f2c86c8d4303af489ce24602e951b7ca25",
+    "reports/bingo_auzo.md": "1c5f46d6ad7504ef97fb144081c849e3e370e45c533360d3107fc790cc08a10b",
+    "reports/bingo_auzo.json": "ed2aa98029e0f7e0dfb535e7da244798a23a930deb6446789fc0841d22adbcff",
+    "reports/auzo_site_inventory.md": "1203888ec16c2b7b4b7566c2d9dd959e5b7ff0c2a2e8a32ba777bf183f1dc856",
+    "reports/auzo_conditional_evidence.csv": "40bec7ee7bea2a562636d82d2428a040194bfdda84ae9742eb8ea83109a5be18"
+  },
+  "rows": 2820000,
+  "counts": [
+    1000,
+    5000,
+    10000
+  ],
+  "source_draws": 13804,
+  "fresh": false,
+  "production_changed": false
+}
